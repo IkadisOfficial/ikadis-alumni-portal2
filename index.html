@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Portal resmi Ikatan Alumni Diponegoro Surakarta (IKADIS) untuk pendataan, kegiatan, jejaring, dan kolaborasi alumni YPID.">
+    <meta name="theme-color" content="#1E3A5F">
+    <title>Portal Alumni IKADIS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Lewati ke isi utama</a>
+
+    <header class="site-header" id="site-header">
+        <div class="container nav-wrap">
+            <button class="brand-button" type="button" data-view="home" aria-label="Kembali ke halaman utama">
+                <img class="brand-logo" src="assets/ikadis-logo.png" alt="Logo resmi IKADIS">
+                <span class="brand-copy">
+                    <strong>IKADIS</strong>
+                    <small>Ikatan Alumni Diponegoro Surakarta</small>
+                </span>
+            </button>
+
+            <nav class="desktop-nav" aria-label="Navigasi utama">
+                <button type="button" data-scroll="kegiatan-section">Kegiatan IKADIS</button>
+                <button type="button" data-scroll="bisnis-section">Bisnis Alumni</button>
+                <button type="button" data-scroll="pesan-section">Pesan Alumni</button>
+                <a id="header-instagram-link" class="nav-instagram is-disabled" href="#" target="_blank" rel="noopener noreferrer">
+                    <i data-lucide="instagram"></i><span>Ikuti di Instagram</span>
+                </a>
+                <button type="button" class="nav-admin" data-view="admin-login"><i data-lucide="lock-keyhole"></i> Panel Admin</button>
+            </nav>
+
+            <button class="mobile-menu-button" id="mobile-menu-button" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="mobile-menu">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
+
+        <div class="mobile-menu hidden" id="mobile-menu">
+            <button type="button" data-scroll="kegiatan-section">Kegiatan IKADIS</button>
+            <button type="button" data-scroll="bisnis-section">Bisnis Alumni</button>
+            <button type="button" data-scroll="pesan-section">Pesan Alumni</button>
+            <a id="mobile-instagram-link" class="is-disabled" href="#" target="_blank" rel="noopener noreferrer"><i data-lucide="instagram"></i> Ikuti di Instagram</a>
+            <button type="button" data-view="admin-login"><i data-lucide="lock-keyhole"></i> Panel Admin</button>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <section class="view" id="view-home">
+            <section class="hero-section">
+                <div class="hero-grid-lines" aria-hidden="true"></div>
+                <div class="hero-orb hero-orb-one" aria-hidden="true"></div>
+                <div class="hero-orb hero-orb-two" aria-hidden="true"></div>
+                <div class="container hero-content">
+                    <div class="hero-kicker"><span></span>Bersatu • Berkarya • Berkontribusi</div>
+                    <h1>Dari YPID<br>Semua Bermula</h1>
+                    <p>Sejak 1928, YPID telah menjadi rumah yang membentuk siapa kita hari ini. Perjalanan kita mungkin membentang ke berbagai arah, tetapi cerita kita bermula dari tempat yang sama. Saatnya menyatukan kembali cerita, kenangan, dan berkolaborasi bersama IKADIS.</p>
+                    <div class="hero-actions">
+                        <button type="button" class="button button-primary button-large" data-view="register"><i data-lucide="user-round-plus"></i> Isi Data Alumni</button>
+                        <button type="button" class="button button-ghost button-large" data-view="update"><i data-lucide="refresh-cw"></i> Perbarui Profil</button>
+                    </div>
+                    <div class="hero-stats" role="group" aria-label="Statistik IKADIS">
+                        <article>
+                            <div class="stat-icon"><i data-lucide="users"></i></div>
+                            <div><strong id="public-alumni-count">—</strong><span>Alumni telah terhubung</span></div>
+                        </article>
+                        <article>
+                            <div class="stat-icon"><i data-lucide="landmark"></i></div>
+                            <div><strong id="ypid-age">98</strong><span>Tahun perjalanan YPID</span></div>
+                        </article>
+                        <article>
+                            <div class="stat-icon"><i data-lucide="heart-handshake"></i></div>
+                            <div><strong>Satu</strong><span>Ikatan lintas generasi</span></div>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section section-light" id="kegiatan-section">
+                <div class="container">
+                    <div class="section-heading">
+                        <div><span class="eyebrow">Dokumentasi &amp; kebersamaan</span><h2>Kegiatan IKADIS</h2></div>
+                        <p>Rekam jejak silaturahmi, kolaborasi, pengabdian, dan kontribusi alumni Diponegoro Surakarta.</p>
+                    </div>
+                    <div class="activity-grid" id="activity-grid" aria-live="polite">
+                        <div class="empty-state span-all"><i data-lucide="images"></i><p>Dokumentasi kegiatan akan segera ditampilkan.</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section section-navy" id="bisnis-section">
+                <div class="container">
+                    <div class="section-heading section-heading-light">
+                        <div><span class="eyebrow">Dari alumni, untuk kemanfaatan bersama</span><h2>Bisnis Alumni</h2></div>
+                        <p>Temukan dan dukung karya serta usaha milik keluarga besar alumni YPID.</p>
+                    </div>
+                    <div class="business-grid" id="business-grid" aria-live="polite">
+                        <div class="empty-state empty-state-dark span-all"><i data-lucide="store"></i><p>Bisnis alumni akan segera ditampilkan.</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section section-message" id="pesan-section">
+                <div class="container message-layout">
+                    <div class="message-intro">
+                        <span class="eyebrow">Suara keluarga besar Diponegoro</span>
+                        <h2>Pesan Alumni</h2>
+                        <p>Kenangan, harapan, dan semangat untuk terus menjaga ikatan serta memberi manfaat bersama.</p>
+                        <button type="button" class="button button-outline" id="open-message-modal"><i data-lucide="message-square-plus"></i> Tulis Pesan Anda</button>
+                    </div>
+                    <div class="message-carousel" id="message-carousel">
+                        <div class="quote-mark" aria-hidden="true">“</div>
+                        <div id="message-slide" aria-live="polite">
+                            <blockquote>Pesan alumni yang telah disetujui admin akan ditampilkan di sini.</blockquote>
+                            <div class="message-author"><strong>Keluarga Besar IKADIS</strong><span>Alumni Diponegoro Surakarta</span></div>
+                        </div>
+                        <div class="carousel-controls">
+                            <div class="carousel-dots" id="message-dots"></div>
+                            <div>
+                                <button type="button" class="icon-button" id="message-prev" aria-label="Pesan sebelumnya"><i data-lucide="arrow-left"></i></button>
+                                <button type="button" class="icon-button" id="message-next" aria-label="Pesan berikutnya"><i data-lucide="arrow-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section community-cta">
+                <div class="container community-card">
+                    <div><span class="eyebrow">Mari pulang dan terhubung kembali</span><h2>Jadilah bagian dari perjalanan IKADIS berikutnya.</h2></div>
+                    <div class="community-actions">
+                        <button type="button" class="button button-white button-large" data-view="register">Isi Data Alumni <i data-lucide="arrow-up-right"></i></button>
+                        <button type="button" class="button button-ghost button-large" id="share-portal-button"><i data-lucide="share-2"></i> Bagikan ke WhatsApp</button>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <section class="view hidden form-view" id="view-register">
+            <div class="container form-page-container">
+                <button type="button" class="back-link" data-view="home"><i data-lucide="arrow-left"></i> Kembali ke beranda</button>
+                <div class="form-card form-card-wide">
+                    <div class="form-header">
+                        <span class="eyebrow">Bergabung dengan keluarga besar IKADIS</span>
+                        <h1>Formulir Pendataan Alumni</h1>
+                        <p>Lengkapi data secara bertahap. Kolom bertanda (*) wajib diisi.</p>
+                    </div>
+                    <div class="stepper" role="group" aria-label="Tahapan formulir">
+                        <div class="step-line"><span id="step-progress"></span></div>
+                        <div class="step-dot active"><span>1</span><small>Profil</small></div>
+                        <div class="step-dot"><span>2</span><small>Pendidikan</small></div>
+                        <div class="step-dot"><span>3</span><small>Kontak</small></div>
+                        <div class="step-dot"><span>4</span><small>Profesional</small></div>
+                    </div>
+                    <form id="registration-form" novalidate>
+                        <input class="honeypot" type="text" id="reg-website" tabindex="-1" autocomplete="off" aria-hidden="true">
+                        <div class="form-step" data-step="1">
+                            <div class="field-grid">
+                                <label class="field"><span>Email aktif *</span><input type="email" id="reg-email" required autocomplete="email" placeholder="nama@email.com"></label>
+                                <label class="field"><span>Nama lengkap *</span><input type="text" id="reg-name" required autocomplete="name" maxlength="120"></label>
+                            </div>
+                            <fieldset class="field"><legend>Jenis kelamin *</legend><div class="choice-row"><label class="choice"><input type="radio" name="reg-gender" value="Laki-laki" required><span>Laki-laki</span></label><label class="choice"><input type="radio" name="reg-gender" value="Perempuan"><span>Perempuan</span></label></div></fieldset>
+                            <label class="field"><span>Kelompok usia *</span><select id="reg-age" required><option value="">Pilih kelompok usia</option><option>17-20</option><option>21-25</option><option>26-30</option><option>31-35</option><option>36-40</option><option>41-45</option><option>46-50</option><option>51-55</option><option>56-60</option><option>61-65</option><option>66-70</option><option>71-75</option><option>Di atas 75 tahun</option></select></label>
+                        </div>
+                        <div class="form-step hidden" data-step="2">
+                            <label class="field"><span>Tahun kelulusan/angkatan *</span><select id="reg-year" required><option value="">Pilih tahun lulus</option></select></label>
+                            <fieldset class="field"><legend>Unit terakhir belajar di YPID *</legend><div class="choice-grid"><label class="choice"><input type="radio" name="reg-unit" value="TK" required><span>TK Diponegoro</span></label><label class="choice"><input type="radio" name="reg-unit" value="SD"><span>SD Diponegoro</span></label><label class="choice"><input type="radio" name="reg-unit" value="SMP"><span>SMP Diponegoro</span></label><label class="choice"><input type="radio" name="reg-unit" value="SMA"><span>SMA Diponegoro</span></label></div></fieldset>
+                            <label class="field"><span>Pendidikan terakhir saat ini *</span><select id="reg-education" required><option value="">Pilih jenjang</option><option>TK</option><option>SD</option><option>SMP</option><option value="SMA">SMA/Sederajat</option><option value="D1-D2-D3">Diploma (D1/D2/D3)</option><option>S1</option><option>S2</option><option>S3</option></select></label>
+                        </div>
+                        <div class="form-step hidden" data-step="3">
+                            <label class="field"><span>Nomor HP/WhatsApp aktif *</span><input type="tel" id="reg-phone" required inputmode="tel" maxlength="20" placeholder="08123456789"><small>Nomor hanya digunakan untuk komunikasi komunitas dan tidak ditampilkan ke publik.</small></label>
+                            <label class="field"><span>Wilayah domisili saat ini *</span><select id="reg-domicile" required></select></label>
+                        </div>
+                        <div class="form-step hidden" data-step="4">
+                            <label class="field"><span>Pekerjaan saat ini *</span><select id="reg-job" required></select></label>
+                            <label class="field hidden" id="custom-job-field"><span>Sebutkan pekerjaan Anda *</span><input type="text" id="reg-custom-job" maxlength="100"></label>
+                            <fieldset class="field"><legend>Apakah memiliki bisnis/usaha sendiri? *</legend><div class="choice-row"><label class="choice"><input type="radio" name="reg-business" value="Ya" required><span>Ya</span></label><label class="choice"><input type="radio" name="reg-business" value="Tidak"><span>Tidak</span></label></div></fieldset>
+                            <div class="business-fields hidden" id="business-fields">
+                                <label class="field"><span>Nama bisnis/usaha *</span><input type="text" id="reg-business-name" maxlength="100" placeholder="Contoh: Kopi Diponegoro"></label>
+                                <label class="field"><span>Deskripsi singkat usaha *</span><textarea id="reg-business-description" rows="3" maxlength="350" placeholder="Jelaskan produk atau layanan utama usaha Anda."></textarea></label>
+                                <label class="field"><span>Akun Instagram bisnis *</span><span class="input-prefix"><span>instagram.com/</span><input type="text" id="reg-business-instagram" maxlength="50" placeholder="namaakun" autocomplete="off"></span><small>Masukkan nama akun saja, tanpa tanda @. Foto profil akun akan digunakan sebagai visual kartu bisnis apabila dapat diakses.</small></label>
+                                <label class="check-field"><input type="checkbox" id="reg-business-consent"><span>Saya menyetujui nama usaha, nama pemilik, deskripsi, dan akun Instagram bisnis ditampilkan pada halaman publik.</span></label>
+                            </div>
+                            <label class="check-field"><input type="checkbox" id="reg-consent" required><span>Saya menyetujui pemrosesan data untuk pendataan, komunikasi, dan pemberdayaan alumni IKADIS sesuai kebijakan privasi.</span></label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="button button-ghost-dark" id="reg-prev" disabled><i data-lucide="arrow-left"></i> Kembali</button>
+                            <button type="button" class="button button-primary" id="reg-next">Selanjutnya <i data-lucide="arrow-right"></i></button>
+                            <button type="submit" class="button button-primary hidden" id="reg-submit"><i data-lucide="save"></i> Simpan Data</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section class="view hidden form-view" id="view-update">
+            <div class="container form-page-container narrow">
+                <button type="button" class="back-link" data-view="home"><i data-lucide="arrow-left"></i> Kembali ke beranda</button>
+                <div class="form-card">
+                    <div class="form-header">
+                        <span class="eyebrow">Pembaruan aman melalui email</span>
+                        <h1>Perbarui Profil Alumni</h1>
+                        <p>Kami akan mengirim tautan verifikasi ke email yang telah terdaftar. Data hanya dapat dibuka setelah verifikasi berhasil.</p>
+                    </div>
+                    <form id="update-request-form">
+                        <label class="field"><span>Email terdaftar *</span><input type="email" id="update-email-request" required autocomplete="email" placeholder="nama@email.com"></label>
+                        <button type="submit" class="button button-primary button-full"><i data-lucide="mail-check"></i> Kirim Tautan Verifikasi</button>
+                    </form>
+                    <form id="update-profile-form" class="hidden">
+                        <div class="verified-badge"><i data-lucide="badge-check"></i><span id="verified-email-label">Email terverifikasi</span></div>
+                        <label class="field"><span>Nama lengkap *</span><input type="text" id="update-name" required maxlength="120"></label>
+                        <label class="field"><span>Nomor HP/WhatsApp *</span><input type="tel" id="update-phone" required maxlength="20"></label>
+                        <label class="field"><span>Wilayah domisili *</span><select id="update-domicile" required></select></label>
+                        <label class="field"><span>Pekerjaan *</span><select id="update-job" required></select></label>
+                        <fieldset class="field"><legend>Memiliki bisnis/usaha?</legend><div class="choice-row"><label class="choice"><input type="radio" name="update-business" value="Ya"><span>Ya</span></label><label class="choice"><input type="radio" name="update-business" value="Tidak"><span>Tidak</span></label></div></fieldset>
+                        <div class="business-fields hidden" id="update-business-fields">
+                            <label class="field"><span>Nama bisnis/usaha *</span><input type="text" id="update-business-name" maxlength="100"></label>
+                            <label class="field"><span>Deskripsi singkat usaha *</span><textarea id="update-business-description" rows="3" maxlength="350"></textarea></label>
+                            <label class="field"><span>Akun Instagram bisnis *</span><span class="input-prefix"><span>instagram.com/</span><input type="text" id="update-business-instagram" maxlength="50"></span></label>
+                            <label class="check-field"><input type="checkbox" id="update-business-consent"><span>Saya menyetujui informasi usaha ditampilkan pada halaman publik.</span></label>
+                        </div>
+                        <button type="submit" class="button button-primary button-full"><i data-lucide="save"></i> Simpan Perubahan</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section class="view hidden success-view" id="view-success">
+            <div class="success-card">
+                <div class="success-icon"><i data-lucide="check"></i></div>
+                <span class="eyebrow">Data berhasil disimpan</span>
+                <h1>Terima kasih telah terhubung kembali.</h1>
+                <p>Kontribusi Anda membantu IKADIS membangun jejaring alumni yang semakin kuat dan bermanfaat.</p>
+                <div class="success-actions">
+                    <a id="success-group-link" class="button button-primary hidden" href="#" target="_blank" rel="noopener noreferrer"><i data-lucide="users"></i> Gabung Grup Alumni</a>
+                    <a id="success-business-link" class="button button-instagram hidden" href="#" target="_blank" rel="noopener noreferrer"><i data-lucide="briefcase-business"></i> Grup Pengusaha</a>
+                    <button type="button" class="button button-ghost-dark" data-view="home">Kembali ke Beranda</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="view hidden admin-login-view" id="view-admin-login">
+            <div class="admin-login-card">
+                <button type="button" class="back-link" data-view="home"><i data-lucide="arrow-left"></i> Kembali</button>
+                <div class="admin-login-icon"><i data-lucide="shield-check"></i></div>
+                <span class="eyebrow">Akses terbatas pengurus</span>
+                <h1>Panel Admin IKADIS</h1>
+                <p>Masuk menggunakan akun admin yang telah didaftarkan di Supabase.</p>
+                <form id="admin-login-form">
+                    <label class="field"><span>Email admin *</span><input type="email" id="admin-email" required autocomplete="username"></label>
+                    <label class="field"><span>Kata sandi *</span><input type="password" id="admin-password" required autocomplete="current-password"></label>
+                    <button type="submit" class="button button-primary button-full"><i data-lucide="log-in"></i> Masuk ke Dashboard</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="view hidden admin-view" id="view-admin-dashboard">
+            <div class="admin-shell">
+                <aside class="admin-sidebar">
+                    <div class="admin-brand"><img src="assets/ikadis-logo.png" alt="IKADIS"><div><strong>Portal Admin</strong><span>IKADIS Surakarta</span></div></div>
+                    <nav id="admin-tabs" aria-label="Menu dashboard">
+                        <button class="active" type="button" data-admin-tab="overview"><i data-lucide="layout-dashboard"></i> Ringkasan</button>
+                        <button type="button" data-admin-tab="alumni"><i data-lucide="database"></i> Data Alumni</button>
+                        <button type="button" data-admin-tab="activities"><i data-lucide="images"></i> Kegiatan</button>
+                        <button type="button" data-admin-tab="messages"><i data-lucide="messages-square"></i> Pesan Alumni</button>
+                        <button type="button" data-admin-tab="settings"><i data-lucide="settings"></i> Pengaturan</button>
+                    </nav>
+                    <button type="button" class="admin-logout" id="admin-logout"><i data-lucide="log-out"></i> Keluar</button>
+                </aside>
+                <div class="admin-main">
+                    <header class="admin-topbar">
+                        <button type="button" class="admin-mobile-menu" id="admin-mobile-menu" aria-label="Buka navigasi admin"><i data-lucide="menu"></i></button>
+                        <div><span>Dashboard Sistem Informasi</span><h1 id="admin-page-title">Ringkasan</h1></div>
+                        <div class="admin-user"><span id="admin-user-email">Admin IKADIS</span><div><i data-lucide="user-round"></i></div></div>
+                    </header>
+
+                    <section class="admin-pane" id="admin-pane-overview">
+                        <div class="admin-stat-grid">
+                            <article><div><span>Total Alumni</span><strong id="admin-total-alumni">0</strong></div><i data-lucide="users"></i></article>
+                            <article><div><span>Bisnis Alumni</span><strong id="admin-total-business">0</strong></div><i data-lucide="store"></i></article>
+                            <article><div><span>Kegiatan Tayang</span><strong id="admin-total-activities">0</strong></div><i data-lucide="images"></i></article>
+                            <article><div><span>Pesan Menunggu</span><strong id="admin-pending-messages">0</strong></div><i data-lucide="message-circle-more"></i></article>
+                        </div>
+                        <div class="chart-grid">
+                            <article class="admin-card"><h2>Kelompok Usia Alumni</h2><div class="chart-wrap"><canvas id="age-chart"></canvas></div></article>
+                            <article class="admin-card"><h2>Bidang Pekerjaan Terbanyak</h2><div class="chart-wrap"><canvas id="job-chart"></canvas></div></article>
+                            <article class="admin-card chart-wide"><h2>Sebaran Domisili Alumni</h2><div class="chart-wrap chart-horizontal"><canvas id="domicile-chart"></canvas></div></article>
+                            <article class="admin-card chart-wide"><h2>Sebaran Alumni Berdasarkan Tahun Kelulusan</h2><div class="chart-wrap"><canvas id="year-chart"></canvas></div></article>
+                        </div>
+                    </section>
+
+                    <section class="admin-pane hidden" id="admin-pane-alumni">
+                        <div class="admin-toolbar">
+                            <label class="search-field"><i data-lucide="search"></i><input type="search" id="admin-alumni-search" placeholder="Cari nama, angkatan, pekerjaan, atau domisili"></label>
+                            <button type="button" class="button button-success" id="export-alumni"><i data-lucide="file-spreadsheet"></i> Ekspor Excel</button>
+                        </div>
+                        <div class="admin-card table-card"><div class="table-scroll"><table><thead><tr><th>Nama</th><th>Email</th><th>Angkatan</th><th>Unit</th><th>WhatsApp</th><th>Domisili</th><th>Pekerjaan</th><th>Bisnis</th><th>Aksi</th></tr></thead><tbody id="admin-alumni-body"></tbody></table></div></div>
+                    </section>
+
+                    <section class="admin-pane hidden" id="admin-pane-activities">
+                        <div class="admin-split">
+                            <form class="admin-card admin-form" id="activity-form">
+                                <div class="card-heading"><div><span class="eyebrow">Kelola dokumentasi</span><h2 id="activity-form-title">Tambah Kegiatan</h2></div></div>
+                                <input type="hidden" id="activity-id">
+                                <input type="hidden" id="activity-current-path">
+                                <label class="field"><span>Judul kegiatan *</span><input type="text" id="activity-title" required maxlength="120"></label>
+                                <label class="field"><span>Caption kegiatan *</span><textarea id="activity-caption" required rows="4" maxlength="500"></textarea></label>
+                                <label class="field"><span>Tanggal kegiatan</span><input type="date" id="activity-date"></label>
+                                <label class="field"><span>Foto kegiatan <b id="activity-file-required">*</b></span><input type="file" id="activity-file" accept="image/jpeg,image/png,image/webp"><small>JPG, PNG, atau WebP. Maksimal 5 MB.</small></label>
+                                <label class="check-field"><input type="checkbox" id="activity-published" checked><span>Langsung tampilkan di halaman publik.</span></label>
+                                <div class="form-actions compact"><button type="button" class="button button-ghost-dark hidden" id="activity-cancel">Batal</button><button type="submit" class="button button-primary"><i data-lucide="upload"></i> Simpan Kegiatan</button></div>
+                            </form>
+                            <div class="admin-card"><div class="card-heading"><div><span class="eyebrow">Dokumentasi tersimpan</span><h2>Daftar Kegiatan</h2></div></div><div class="admin-activity-list" id="admin-activity-list"></div></div>
+                        </div>
+                    </section>
+
+                    <section class="admin-pane hidden" id="admin-pane-messages">
+                        <div class="admin-notice"><i data-lucide="info"></i><p>Maksimal lima pesan dapat ditampilkan sekaligus. Gunakan tombol Tampilkan/Sembunyikan dan atur urutannya dengan panah.</p></div>
+                        <div class="message-admin-grid" id="admin-message-list"></div>
+                    </section>
+
+                    <section class="admin-pane hidden" id="admin-pane-settings">
+                        <div class="admin-split settings-grid">
+                            <form class="admin-card admin-form" id="instagram-settings-form">
+                                <div class="card-heading"><div><span class="eyebrow">Media sosial resmi</span><h2>Instagram IKADIS</h2></div></div>
+                                <label class="field"><span>Nama akun Instagram *</span><span class="input-prefix"><span>instagram.com/</span><input type="text" id="official-instagram" required placeholder="ikadis_official"></span><small>Tautan ini digunakan pada header dan footer situs.</small></label>
+                                <button type="submit" class="button button-primary"><i data-lucide="save"></i> Simpan Instagram</button>
+                            </form>
+                            <form class="admin-card admin-form" id="whatsapp-settings-form">
+                                <div class="card-heading"><div><span class="eyebrow">Pengalihan setelah mendaftar</span><h2>Grup WhatsApp</h2></div></div>
+                                <div id="whatsapp-settings-fields" class="wa-field-grid"></div>
+                                <button type="submit" class="button button-primary"><i data-lucide="save"></i> Simpan Semua Tautan</button>
+                            </form>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer" id="site-footer">
+        <div class="container footer-grid">
+            <div class="footer-brand"><img src="assets/ikadis-logo.png" alt="Logo IKADIS"><p>Bersatu dalam ukhuwah, berkarya untuk kemajuan, dan berkontribusi bagi umat, bangsa, serta almamater.</p></div>
+            <div><h2>Tautan Cepat</h2><button type="button" data-scroll="kegiatan-section">Kegiatan IKADIS</button><button type="button" data-scroll="bisnis-section">Bisnis Alumni</button><button type="button" data-view="register">Isi Data Alumni</button></div>
+            <div><h2>Terhubung</h2><a id="footer-instagram-link" class="footer-social is-disabled" href="#" target="_blank" rel="noopener noreferrer"><i data-lucide="instagram"></i><span>Ikuti IKADIS di Instagram</span></a></div>
+        </div>
+        <div class="container footer-bottom"><span>© <span id="footer-year">2026</span> IKADIS — Ikatan Alumni Diponegoro Surakarta.</span><span>Portal Alumni Resmi YPID</span></div>
+    </footer>
+
+    <div class="modal hidden" id="message-modal" role="dialog" aria-modal="true" aria-labelledby="message-modal-title">
+        <div class="modal-backdrop" data-close-modal="message-modal"></div>
+        <div class="modal-card">
+            <button type="button" class="modal-close" data-close-modal="message-modal" aria-label="Tutup"><i data-lucide="x"></i></button>
+            <span class="eyebrow">Bagikan kenangan dan harapan</span>
+            <h2 id="message-modal-title">Tulis Pesan Alumni</h2>
+            <p>Pesan akan diperiksa admin terlebih dahulu sebelum ditampilkan.</p>
+            <form id="public-message-form">
+                <input class="honeypot" type="text" id="message-website" tabindex="-1" autocomplete="off" aria-hidden="true">
+                <label class="field"><span>Nama lengkap *</span><input type="text" id="message-name" required maxlength="120"></label>
+                <label class="field"><span>Tahun kelulusan/angkatan</span><select id="message-year"><option value="">Tidak dicantumkan</option></select></label>
+                <label class="field"><span>Pesan *</span><textarea id="message-content" required rows="5" minlength="20" maxlength="500" placeholder="Tuliskan pesan, kenangan, atau harapan Anda untuk IKADIS."></textarea><small>Maksimal 500 karakter.</small></label>
+                <button type="submit" class="button button-primary button-full"><i data-lucide="send"></i> Kirim untuk Ditinjau</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal hidden" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <div class="modal-backdrop" data-close-modal="confirm-modal"></div>
+        <div class="modal-card modal-card-small">
+            <div class="danger-icon"><i data-lucide="triangle-alert"></i></div>
+            <h2 id="confirm-title">Konfirmasi tindakan</h2>
+            <p id="confirm-text">Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="modal-actions"><button type="button" class="button button-ghost-dark" data-close-modal="confirm-modal">Batal</button><button type="button" class="button button-danger" id="confirm-action">Lanjutkan</button></div>
+        </div>
+    </div>
+
+    <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <div class="loading-overlay hidden" id="loading-overlay" aria-live="polite"><div class="loader"></div><p id="loading-text">Memproses...</p></div>
+</body>
+</html>

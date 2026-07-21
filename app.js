@@ -533,22 +533,30 @@
 
    async function requestUpdateLink(event) {
     event.preventDefault();
+    event.stopImmediatePropagation();
+
+    console.info("VERSI_UPDATE_LINK_3_AKTIF");
 
     if (!state.supabase) {
-        showToast(
-            "Koneksi ke sistem belum tersedia. Silakan muat ulang halaman.",
-            "error"
-        );
+        const message =
+            "Koneksi Supabase belum tersedia. Silakan muat ulang halaman.";
+        showToast(message, "error", 7000);
+        alert(message);
         return;
     }
 
-    const emailInput = $("#update-email-request");
+    const form = event.currentTarget;
+    const emailInput =
+        form?.querySelector("#update-email-request") ||
+        $("#update-email-request");
+
     const email = emailInput
         ? emailInput.value.trim().toLowerCase()
         : "";
 
     if (!emailInput || !email || !emailInput.checkValidity()) {
-        showToast("Masukkan alamat email yang valid.", "error");
+        const message = "Masukkan alamat email yang valid.";
+        showToast(message, "error", 7000);
         return;
     }
 
@@ -558,83 +566,108 @@
     setLoading(true, "Mengirim tautan verifikasi...");
 
     try {
-        const { error } = await state.supabase.auth.signInWithOtp({
-            email,
-            options: {
-                emailRedirectTo: redirectUrl.toString(),
+        const { data, error } =
+            await state.supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    emailRedirectTo: redirectUrl.toString(),
+                    shouldCreateUser: true
+                }
+            });
 
-                // Harus true agar alumni yang belum tercatat
-                // di Authentication dapat menerima magic link.
-                shouldCreateUser: true
-            }
+        console.info("Hasil permintaan magic link:", {
+            data,
+            error
         });
 
-        if (error) throw error;
+        if (error) {
+            const errorMessage =
+                typeof error.message === "string" &&
+                error.message.trim()
+                    ? error.message.trim()
+                    : "";
+
+            const errorCode =
+                typeof error.code === "string"
+                    ? error.code
+                    : "";
+
+            const errorStatus =
+                error.status !== undefined &&
+                error.status !== null
+                    ? String(error.status)
+                    : "";
+
+            const details = [
+                errorMessage,
+                errorCode ? `Kode: ${errorCode}` : "",
+                errorStatus ? `Status: ${errorStatus}` : ""
+            ]
+                .filter(Boolean)
+                .join(" | ");
+
+            throw new Error(
+                details ||
+                "Supabase menolak permintaan tanpa memberikan pesan rinci."
+            );
+        }
 
         showToast(
             "Tautan verifikasi telah dikirim. Silakan periksa kotak masuk atau folder spam.",
             "success",
             6500
         );
-    } catch (error) {
-        console.error("Kesalahan pengiriman magic link:", error);
+    } catch (caughtError) {
+        console.error(
+            "VERSI_UPDATE_LINK_3 — Kesalahan lengkap:",
+            caughtError
+        );
 
-        const errorCode = String(error?.code || "").toLowerCase();
-        const originalMessage = String(
-            error?.message ||
-            error?.error_description ||
-            error?.msg ||
-            error?.details ||
-            ""
-        ).trim();
-
-        const normalizedMessage = originalMessage.toLowerCase();
-
-        let message = originalMessage ||
-            "Tautan verifikasi belum berhasil dikirim.";
+        let detail = "";
 
         if (
-            errorCode.includes("rate_limit") ||
-            normalizedMessage.includes("rate limit")
+            caughtError instanceof Error &&
+            typeof caughtError.message === "string"
         ) {
-            message =
-                "Permintaan email terlalu sering. Tunggu beberapa menit, kemudian coba kembali.";
-        } else if (
-            errorCode === "otp_disabled" ||
-            normalizedMessage.includes("otp is disabled") ||
-            normalizedMessage.includes("otp disabled")
-        ) {
-            message =
-                "Fitur magic link belum diaktifkan pada pengaturan Authentication Supabase.";
-        } else if (
-            errorCode.includes("signup_disabled") ||
-            normalizedMessage.includes("signups not allowed") ||
-            normalizedMessage.includes("signup is disabled")
-        ) {
-            message =
-                "Pembuatan akun melalui email belum diizinkan pada pengaturan Authentication Supabase.";
-        } else if (
-            errorCode.includes("email") &&
-            errorCode.includes("invalid")
-        ) {
-            message = "Alamat email yang dimasukkan tidak valid.";
-        } else if (
-            normalizedMessage.includes("email address not authorized")
-        ) {
-            message =
-                "Alamat email belum diizinkan menerima email dari layanan Supabase. Periksa pengaturan SMTP.";
-        } else if (
-            normalizedMessage.includes("redirect") &&
-            (
-                normalizedMessage.includes("not allowed") ||
-                normalizedMessage.includes("invalid")
-            )
-        ) {
-            message =
-                "Alamat portal belum terdaftar pada Redirect URLs Supabase.";
+            detail = caughtError.message.trim();
+        } else if (typeof caughtError === "string") {
+            detail = caughtError.trim();
         }
 
-        showToast(message, "error", 6500);
+        if (
+            !detail ||
+            detail === "{}" ||
+            detail === "[object Object]"
+        ) {
+            try {
+                detail = JSON.stringify(
+                    caughtError,
+                    Object.getOwnPropertyNames(
+                        Object(caughtError)
+                    )
+                );
+            } catch (_) {
+                detail = "";
+            }
+        }
+
+        if (
+            !detail ||
+            detail === "{}" ||
+            detail === "[object Object]"
+        ) {
+            detail =
+                "Supabase menolak permintaan. Periksa Authentication Logs pada dashboard Supabase.";
+        }
+
+        const finalMessage =
+            `Gagal mengirim tautan verifikasi: ${detail}`;
+
+        showToast(finalMessage, "error", 9000);
+
+        // Sementara dipakai untuk memastikan pesan asli terlihat,
+        // meskipun fungsi toast di portal bermasalah.
+        alert(finalMessage);
     } finally {
         setLoading(false);
     }

@@ -2,7 +2,7 @@
     "use strict";
 
     const SUPABASE_URL = "https://sysrymtygxgydivvmajk.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI6InJlZiI6InN5c3J5bXR5Z3hneWRpdnZtYWprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0MjM4NDQsImV4cCI6MjA5OTk5OTg0NH0.ZL6ufyOT8dibZOlSj-HFDrd7r6R5NaqnmrqBgHIjhjs";
+    const SUPABASE_ANON_KEY = "sb_publishable_hxI5AY_PM7MotqDKVmiuiA_NYs1viez";
 
     const DOMICILE_OPTIONS = [
         "Kecamatan Serengan Kota Solo", "Kecamatan Pasar Kliwon Kota Solo",

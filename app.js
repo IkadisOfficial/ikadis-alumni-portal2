@@ -531,26 +531,114 @@
         toggleUpdateBusiness();
     }
 
-    async function requestUpdateLink(event) {
-        event.preventDefault();
-        if (!state.supabase) return;
-        const email = $("#update-email-request").value.trim().toLowerCase();
-        if (!email || !$("#update-email-request").checkValidity()) {
-            showToast("Masukkan alamat email yang valid.", "error");
-            return;
-        }
-        const redirectUrl = `${location.origin}${location.pathname}?mode=update`;
-        setLoading(true, "Mengirim tautan verifikasi...");
-        try {
-            const { error } = await state.supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectUrl, shouldCreateUser: false } });
-            if (error) throw error;
-            showToast("Tautan verifikasi telah dikirim. Silakan periksa kotak masuk atau folder spam.", "success", 6500);
-        } catch (error) {
-            showToast(friendlyError(error, "Tautan verifikasi belum berhasil dikirim."), "error");
-        } finally {
-            setLoading(false);
-        }
+   async function requestUpdateLink(event) {
+    event.preventDefault();
+
+    if (!state.supabase) {
+        showToast(
+            "Koneksi ke sistem belum tersedia. Silakan muat ulang halaman.",
+            "error"
+        );
+        return;
     }
+
+    const emailInput = $("#update-email-request");
+    const email = emailInput
+        ? emailInput.value.trim().toLowerCase()
+        : "";
+
+    if (!emailInput || !email || !emailInput.checkValidity()) {
+        showToast("Masukkan alamat email yang valid.", "error");
+        return;
+    }
+
+    const redirectUrl = new URL(location.pathname, location.origin);
+    redirectUrl.searchParams.set("mode", "update");
+
+    setLoading(true, "Mengirim tautan verifikasi...");
+
+    try {
+        const { error } = await state.supabase.auth.signInWithOtp({
+            email,
+            options: {
+                emailRedirectTo: redirectUrl.toString(),
+
+                // Harus true agar alumni yang belum tercatat
+                // di Authentication dapat menerima magic link.
+                shouldCreateUser: true
+            }
+        });
+
+        if (error) throw error;
+
+        showToast(
+            "Tautan verifikasi telah dikirim. Silakan periksa kotak masuk atau folder spam.",
+            "success",
+            6500
+        );
+    } catch (error) {
+        console.error("Kesalahan pengiriman magic link:", error);
+
+        const errorCode = String(error?.code || "").toLowerCase();
+        const originalMessage = String(
+            error?.message ||
+            error?.error_description ||
+            error?.msg ||
+            error?.details ||
+            ""
+        ).trim();
+
+        const normalizedMessage = originalMessage.toLowerCase();
+
+        let message = originalMessage ||
+            "Tautan verifikasi belum berhasil dikirim.";
+
+        if (
+            errorCode.includes("rate_limit") ||
+            normalizedMessage.includes("rate limit")
+        ) {
+            message =
+                "Permintaan email terlalu sering. Tunggu beberapa menit, kemudian coba kembali.";
+        } else if (
+            errorCode === "otp_disabled" ||
+            normalizedMessage.includes("otp is disabled") ||
+            normalizedMessage.includes("otp disabled")
+        ) {
+            message =
+                "Fitur magic link belum diaktifkan pada pengaturan Authentication Supabase.";
+        } else if (
+            errorCode.includes("signup_disabled") ||
+            normalizedMessage.includes("signups not allowed") ||
+            normalizedMessage.includes("signup is disabled")
+        ) {
+            message =
+                "Pembuatan akun melalui email belum diizinkan pada pengaturan Authentication Supabase.";
+        } else if (
+            errorCode.includes("email") &&
+            errorCode.includes("invalid")
+        ) {
+            message = "Alamat email yang dimasukkan tidak valid.";
+        } else if (
+            normalizedMessage.includes("email address not authorized")
+        ) {
+            message =
+                "Alamat email belum diizinkan menerima email dari layanan Supabase. Periksa pengaturan SMTP.";
+        } else if (
+            normalizedMessage.includes("redirect") &&
+            (
+                normalizedMessage.includes("not allowed") ||
+                normalizedMessage.includes("invalid")
+            )
+        ) {
+            message =
+                "Alamat portal belum terdaftar pada Redirect URLs Supabase.";
+        }
+
+        showToast(message, "error", 6500);
+    } finally {
+        setLoading(false);
+    }
+}
 
     async function handleAuthReturn() {
         if (!state.supabase) return;

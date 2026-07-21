@@ -206,16 +206,16 @@
                 <button type="button" class="back-link" data-view="home"><i data-lucide="arrow-left"></i> Kembali ke beranda</button>
                 <div class="form-card">
                     <div class="form-header">
-                        <span class="eyebrow">Pembaruan aman melalui email</span>
+                        <span class="eyebrow">Pembaruan profil berdasarkan email</span>
                         <h1>Perbarui Profil Alumni</h1>
-                        <p>Kami akan mengirim tautan verifikasi ke email yang telah terdaftar. Data hanya dapat dibuka setelah verifikasi berhasil.</p>
+                        <p>Masukkan email yang telah terdaftar. Jika ditemukan, data profil akan langsung dibuka tanpa pengiriman tautan verifikasi.</p>
                     </div>
                     <form id="update-request-form">
-                        <label class="field"><span>Email terdaftar *</span><input type="email" id="update-email-request" required autocomplete="email" placeholder="nama@email.com"></label>
-                        <button type="submit" class="button button-primary button-full"><i data-lucide="mail-check"></i> Kirim Tautan Verifikasi</button>
+                        <label class="field"><span>Email terdaftar *</span><input type="email" id="update-email-request" required autocomplete="email" placeholder="nama@email.com"><small>Gunakan email yang sama seperti saat mengisi data alumni.</small></label>
+                        <button type="submit" class="button button-primary button-full"><i data-lucide="search"></i> Cari dan Buka Profil</button>
                     </form>
                     <form id="update-profile-form" class="hidden">
-                        <div class="verified-badge"><i data-lucide="badge-check"></i><span id="verified-email-label">Email terverifikasi</span></div>
+                        <div class="verified-badge"><i data-lucide="user-check"></i><span id="verified-email-label">Profil ditemukan</span></div>
                         <label class="field"><span>Nama lengkap *</span><input type="text" id="update-name" required maxlength="120"></label>
                         <label class="field"><span>Nomor HP/WhatsApp *</span><input type="tel" id="update-phone" required maxlength="20"></label>
                         <label class="field"><span>Wilayah domisili *</span><select id="update-domicile" required></select></label>

@@ -46,7 +46,8 @@
         charts: {},
         adminVerified: false,
         confirmAction: null,
-        editingActivity: null
+        editingActivity: null,
+        updateEmail: ""
     };
 
     const $ = (selector, root = document) => root.querySelector(selector);
@@ -62,14 +63,11 @@
         renderIcons();
         showView("home", { reset: false });
 
-        await Promise.allSettled([loadPublicContent(), handleAuthReturn()]);
+        await loadPublicContent();
 
         if (state.supabase) {
-            state.supabase.auth.onAuthStateChange((event, session) => {
+            state.supabase.auth.onAuthStateChange(event => {
                 if (event === "SIGNED_OUT") state.adminVerified = false;
-                if (event === "SIGNED_IN" && session && new URLSearchParams(location.search).get("mode") === "update") {
-                    window.setTimeout(() => openVerifiedUpdate(session.user), 0);
-                }
             });
         }
     }
@@ -524,190 +522,67 @@
     }
 
     function resetUpdateView() {
+        state.updateEmail = "";
         $("#update-request-form").reset();
         $("#update-request-form").classList.remove("hidden");
         $("#update-profile-form").classList.add("hidden");
         $("#update-profile-form").reset();
+        $("#verified-email-label").textContent = "Profil ditemukan";
         toggleUpdateBusiness();
     }
 
-   async function requestUpdateLink(event) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-
-    console.info("VERSI_UPDATE_LINK_3_AKTIF");
-
-    if (!state.supabase) {
-        const message =
-            "Koneksi Supabase belum tersedia. Silakan muat ulang halaman.";
-        showToast(message, "error", 7000);
-        alert(message);
-        return;
-    }
-
-    const form = event.currentTarget;
-    const emailInput =
-        form?.querySelector("#update-email-request") ||
-        $("#update-email-request");
-
-    const email = emailInput
-        ? emailInput.value.trim().toLowerCase()
-        : "";
-
-    if (!emailInput || !email || !emailInput.checkValidity()) {
-        const message = "Masukkan alamat email yang valid.";
-        showToast(message, "error", 7000);
-        return;
-    }
-
-    const redirectUrl = new URL(location.pathname, location.origin);
-    redirectUrl.searchParams.set("mode", "update");
-
-    setLoading(true, "Mengirim tautan verifikasi...");
-
-    try {
-        const { data, error } =
-            await state.supabase.auth.signInWithOtp({
-                email,
-                options: {
-                    emailRedirectTo: redirectUrl.toString(),
-                    shouldCreateUser: true
-                }
-            });
-
-        console.info("Hasil permintaan magic link:", {
-            data,
-            error
-        });
-
-        if (error) {
-            const errorMessage =
-                typeof error.message === "string" &&
-                error.message.trim()
-                    ? error.message.trim()
-                    : "";
-
-            const errorCode =
-                typeof error.code === "string"
-                    ? error.code
-                    : "";
-
-            const errorStatus =
-                error.status !== undefined &&
-                error.status !== null
-                    ? String(error.status)
-                    : "";
-
-            const details = [
-                errorMessage,
-                errorCode ? `Kode: ${errorCode}` : "",
-                errorStatus ? `Status: ${errorStatus}` : ""
-            ]
-                .filter(Boolean)
-                .join(" | ");
-
-            throw new Error(
-                details ||
-                "Supabase menolak permintaan tanpa memberikan pesan rinci."
-            );
+    async function requestUpdateLink(event) {
+        event.preventDefault();
+        if (!state.supabase) {
+            showToast("Koneksi ke sistem belum tersedia. Silakan muat ulang halaman.", "error");
+            return;
         }
 
-        showToast(
-            "Tautan verifikasi telah dikirim. Silakan periksa kotak masuk atau folder spam.",
-            "success",
-            6500
-        );
-    } catch (caughtError) {
-        console.error(
-            "VERSI_UPDATE_LINK_3 — Kesalahan lengkap:",
-            caughtError
-        );
+        const form = event.currentTarget;
+        const emailInput = $("#update-email-request");
+        const email = emailInput.value.trim().toLowerCase();
 
-        let detail = "";
-
-        if (
-            caughtError instanceof Error &&
-            typeof caughtError.message === "string"
-        ) {
-            detail = caughtError.message.trim();
-        } else if (typeof caughtError === "string") {
-            detail = caughtError.trim();
+        if (!email || !emailInput.checkValidity()) {
+            form.reportValidity();
+            showToast("Masukkan alamat email yang valid.", "error");
+            return;
         }
 
-        if (
-            !detail ||
-            detail === "{}" ||
-            detail === "[object Object]"
-        ) {
-            try {
-                detail = JSON.stringify(
-                    caughtError,
-                    Object.getOwnPropertyNames(
-                        Object(caughtError)
-                    )
-                );
-            } catch (_) {
-                detail = "";
-            }
-        }
-
-        if (
-            !detail ||
-            detail === "{}" ||
-            detail === "[object Object]"
-        ) {
-            detail =
-                "Supabase menolak permintaan. Periksa Authentication Logs pada dashboard Supabase.";
-        }
-
-        const finalMessage =
-            `Gagal mengirim tautan verifikasi: ${detail}`;
-
-        showToast(finalMessage, "error", 9000);
-
-        // Sementara dipakai untuk memastikan pesan asli terlihat,
-        // meskipun fungsi toast di portal bermasalah.
-        alert(finalMessage);
-    } finally {
-        setLoading(false);
-    }
-}
-
-    async function handleAuthReturn() {
-        if (!state.supabase) return;
-        const { data } = await state.supabase.auth.getSession();
-        const mode = new URLSearchParams(location.search).get("mode");
-        if (mode === "update" && data.session?.user) await openVerifiedUpdate(data.session.user);
-    }
-
-    async function openVerifiedUpdate(user) {
-        if (!user?.email || !state.supabase) return;
-        setLoading(true, "Membuka profil terverifikasi...");
+        setLoading(true, "Mencari data alumni...");
         try {
-            const { data, error } = await state.supabase.from("alumni").select("*").eq("email", user.email.toLowerCase()).maybeSingle();
+            const { data, error } = await state.supabase.rpc(
+                "get_alumni_profile_by_email",
+                { p_email: email }
+            );
             if (error) throw error;
-            if (!data) throw new Error("Data alumni tidak ditemukan untuk email terverifikasi ini.");
 
-            showView("update", { reset: false, instant: true });
+            const profile = typeof data === "string" ? JSON.parse(data) : data;
+            if (!profile) {
+                throw new Error("Email belum terdaftar dalam data alumni IKADIS.");
+            }
+
+            state.updateEmail = email;
             $("#update-request-form").classList.add("hidden");
             $("#update-profile-form").classList.remove("hidden");
-            $("#verified-email-label").textContent = user.email;
-            $("#update-name").value = data.nama_lengkap || "";
-            $("#update-phone").value = data.nomor_hp || "";
-            setSelectValue($("#update-domicile"), data.wilayah_domisili);
-            setSelectValue($("#update-job"), data.pekerjaan);
-            const businessValue = data.memiliki_bisnis === "Ya" ? "Ya" : "Tidak";
-            $(`input[name="update-business"][value="${businessValue}"]`).checked = true;
-            $("#update-business-name").value = data.nama_bisnis || "";
-            $("#update-business-description").value = data.deskripsi_bisnis || "";
-            $("#update-business-instagram").value = sanitizeInstagramHandle(data.instagram_bisnis || "");
-            $("#update-business-consent").checked = Boolean(data.publikasi_bisnis);
+            $("#verified-email-label").textContent = `Profil ditemukan: ${email}`;
+            $("#update-name").value = profile.nama_lengkap || "";
+            $("#update-phone").value = profile.nomor_hp || "";
+            setSelectValue($("#update-domicile"), profile.wilayah_domisili);
+            setSelectValue($("#update-job"), profile.pekerjaan);
+
+            const businessValue = profile.memiliki_bisnis === "Ya" ? "Ya" : "Tidak";
+            const businessRadio = $(`input[name="update-business"][value="${businessValue}"]`);
+            if (businessRadio) businessRadio.checked = true;
+            $("#update-business-name").value = profile.nama_bisnis || "";
+            $("#update-business-description").value = profile.deskripsi_bisnis || "";
+            $("#update-business-instagram").value = sanitizeInstagramHandle(profile.instagram_bisnis || "");
+            $("#update-business-consent").checked = Boolean(profile.publikasi_bisnis);
             toggleUpdateBusiness();
-            history.replaceState({}, "", location.pathname);
+            renderIcons();
+            showToast("Profil ditemukan. Silakan perbarui data yang diperlukan.", "success");
         } catch (error) {
+            state.updateEmail = "";
             showToast(friendlyError(error, "Profil tidak dapat dibuka."), "error", 6500);
-            await state.supabase.auth.signOut();
-            showView("update");
         } finally {
             setLoading(false);
         }
@@ -728,10 +603,11 @@
     async function submitProfileUpdate(event) {
         event.preventDefault();
         if (!state.supabase) return;
-        const { data: sessionData } = await state.supabase.auth.getSession();
-        const email = sessionData.session?.user?.email?.toLowerCase();
+
+        const email = state.updateEmail.trim().toLowerCase();
         if (!email) {
-            showToast("Sesi verifikasi telah berakhir. Silakan minta tautan baru.", "error");
+            showToast("Silakan cari profil menggunakan email terlebih dahulu.", "error");
+            resetUpdateView();
             return;
         }
 
@@ -748,24 +624,29 @@
             return;
         }
 
-        const payload = {
-            nama_lengkap: $("#update-name").value.trim(),
-            nomor_hp: normalizePhone($("#update-phone").value),
-            wilayah_domisili: $("#update-domicile").value,
-            pekerjaan: $("#update-job").value,
-            memiliki_bisnis: hasBusiness ? "Ya" : "Tidak",
-            nama_bisnis: hasBusiness ? $("#update-business-name").value.trim() : null,
-            deskripsi_bisnis: hasBusiness ? $("#update-business-description").value.trim() : null,
-            instagram_bisnis: hasBusiness ? sanitizeInstagramHandle($("#update-business-instagram").value) : null,
-            publikasi_bisnis: hasBusiness && $("#update-business-consent").checked,
-            updated_at: new Date().toISOString()
+        const rpcPayload = {
+            p_email: email,
+            p_nama_lengkap: $("#update-name").value.trim(),
+            p_nomor_hp: normalizePhone($("#update-phone").value),
+            p_wilayah_domisili: $("#update-domicile").value,
+            p_pekerjaan: $("#update-job").value,
+            p_memiliki_bisnis: hasBusiness ? "Ya" : "Tidak",
+            p_nama_bisnis: hasBusiness ? $("#update-business-name").value.trim() : null,
+            p_deskripsi_bisnis: hasBusiness ? $("#update-business-description").value.trim() : null,
+            p_instagram_bisnis: hasBusiness ? sanitizeInstagramHandle($("#update-business-instagram").value) : null,
+            p_publikasi_bisnis: hasBusiness && $("#update-business-consent").checked
         };
 
         setLoading(true, "Menyimpan perubahan...");
         try {
-            const { error } = await state.supabase.from("alumni").update(payload).eq("email", email);
+            const { data, error } = await state.supabase.rpc(
+                "update_alumni_profile_by_email",
+                rpcPayload
+            );
             if (error) throw error;
-            await state.supabase.auth.signOut();
+            if (data !== true) throw new Error("Data alumni tidak ditemukan atau tidak berubah.");
+
+            state.updateEmail = "";
             showToast("Profil alumni berhasil diperbarui.", "success");
             showView("home");
             loadPublicContent();
@@ -776,7 +657,7 @@
         }
     }
 
-  async function submitPublicMessage(event) {
+    async function submitPublicMessage(event) {
     event.preventDefault();
 
     const form = event.currentTarget;

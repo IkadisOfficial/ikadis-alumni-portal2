@@ -655,31 +655,52 @@
         }
     }
 
-    async function submitPublicMessage(event) {
-        event.preventDefault();
-        if ($("#message-website").value || !state.supabase) return;
-        if (!event.currentTarget.checkValidity()) {
-            event.currentTarget.reportValidity();
-            return;
-        }
-        const payload = {
-            nama: $("#message-name").value.trim(),
-            tahun_kelulusan: $("#message-year").value ? Number($("#message-year").value) : null,
-            pesan: $("#message-content").value.trim()
-        };
-        setLoading(true, "Mengirim pesan...");
-        try {
-            const { error } = await state.supabase.from("alumni_messages").insert(payload);
-            if (error) throw error;
-            event.currentTarget.reset();
-            closeModal("message-modal");
-            showToast("Pesan telah diterima dan menunggu persetujuan admin.", "success", 6000);
-        } catch (error) {
-            showToast(friendlyError(error, "Pesan belum berhasil dikirim."), "error");
-        } finally {
-            setLoading(false);
-        }
+  async function submitPublicMessage(event) {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+
+    if ($("#message-website").value || !state.supabase) return;
+
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
     }
+
+    const payload = {
+        nama: $("#message-name").value.trim(),
+        tahun_kelulusan: $("#message-year").value
+            ? Number($("#message-year").value)
+            : null,
+        pesan: $("#message-content").value.trim()
+    };
+
+    setLoading(true, "Mengirim pesan...");
+
+    try {
+        const { error } = await state.supabase
+            .from("alumni_messages")
+            .insert(payload);
+
+        if (error) throw error;
+
+        form.reset();
+        closeModal("message-modal");
+
+        showToast(
+            "Pesan telah diterima dan menunggu persetujuan admin.",
+            "success",
+            6000
+        );
+    } catch (error) {
+        showToast(
+            friendlyError(error, "Pesan belum berhasil dikirim."),
+            "error"
+        );
+    } finally {
+        setLoading(false);
+    }
+}
 
     async function adminLogin(event) {
         event.preventDefault();

@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Portal resmi Ikatan Alumni Diponegoro Surakarta (IKADIS) untuk pendataan, kegiatan, jejaring, dan kolaborasi alumni YPID.">
     <meta name="theme-color" content="#1E3A5F">
+    <link rel="canonical" href="https://ikadis.or.id/">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="IKADIS">
+    <meta property="og:title" content="Portal Alumni IKADIS">
+    <meta property="og:description" content="Dari YPID semua bermula. Mari terhubung kembali, memperbarui data, dan membangun jejaring alumni Diponegoro Surakarta.">
+    <meta property="og:url" content="https://ikadis.or.id/">
+    <meta property="og:image" content="https://ikadis.or.id/assets/ikadis-preview.jpg">
+    <meta property="og:image:secure_url" content="https://ikadis.or.id/assets/ikadis-preview.jpg">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Portal Alumni IKADIS — Dari YPID Semua Bermula">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Portal Alumni IKADIS">
+    <meta name="twitter:description" content="Dari YPID semua bermula. Mari terhubung kembali melalui Portal Alumni IKADIS.">
+    <meta name="twitter:image" content="https://ikadis.or.id/assets/ikadis-preview.jpg">
     <title>Portal Alumni IKADIS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,8 +119,17 @@
                         <div><span class="eyebrow">Dari alumni, untuk kemanfaatan bersama</span><h2>Bisnis Alumni</h2></div>
                         <p>Temukan dan dukung karya serta usaha milik keluarga besar alumni YPID.</p>
                     </div>
-                    <div class="business-grid" id="business-grid" aria-live="polite">
-                        <div class="empty-state empty-state-dark span-all"><i data-lucide="store"></i><p>Bisnis alumni akan segera ditampilkan.</p></div>
+                    <div class="business-carousel-shell" aria-label="Daftar bisnis alumni">
+                        <button type="button" class="business-nav business-nav-prev" id="business-prev" aria-label="Bisnis sebelumnya"><i data-lucide="chevron-left"></i></button>
+                        <div class="business-carousel" id="business-carousel" aria-live="polite">
+                            <div class="empty-state empty-state-dark span-all"><i data-lucide="store"></i><p>Bisnis alumni akan segera ditampilkan.</p></div>
+                        </div>
+                        <button type="button" class="business-nav business-nav-next" id="business-next" aria-label="Bisnis berikutnya"><i data-lucide="chevron-right"></i></button>
+                    </div>
+                    <div class="business-carousel-footer">
+                        <div class="business-counter" id="business-counter">0 dari 0</div>
+                        <div class="business-progress" aria-hidden="true"><span id="business-progress-bar"></span></div>
+                        <button type="button" class="button button-white" data-view="business-directory">Lihat Semua Bisnis <i data-lucide="arrow-right"></i></button>
                     </div>
                 </div>
             </section>
@@ -142,6 +168,25 @@
                     </div>
                 </div>
             </section>
+        </section>
+
+        <section class="view hidden business-directory-view" id="view-business-directory">
+            <div class="container directory-container">
+                <button type="button" class="back-link" data-view="home"><i data-lucide="arrow-left"></i> Kembali ke beranda</button>
+                <header class="directory-hero">
+                    <span class="eyebrow">Dari alumni, untuk alumni</span>
+                    <h1>Direktori Bisnis Alumni</h1>
+                    <p>Temukan produk, layanan, dan usaha milik keluarga besar Diponegoro Surakarta.</p>
+                </header>
+                <div class="directory-toolbar">
+                    <label class="search-field directory-search"><i data-lucide="search"></i><input type="search" id="business-search" placeholder="Cari nama bisnis, produk, layanan, atau pemilik"></label>
+                    <label class="directory-filter"><span>Kategori</span><select id="business-category-filter"><option value="">Semua kategori</option></select></label>
+                    <button type="button" class="button button-ghost-dark" id="business-reset-filter"><i data-lucide="rotate-ccw"></i> Hapus Filter</button>
+                </div>
+                <div class="directory-summary"><strong id="business-result-count">0 bisnis</strong><span id="business-filter-note">Menampilkan seluruh bisnis alumni.</span></div>
+                <div class="business-directory-grid" id="business-directory-grid" aria-live="polite"></div>
+                <div class="directory-more-wrap"><button type="button" class="button button-primary hidden" id="business-load-more">Muat Lebih Banyak <i data-lucide="chevron-down"></i></button></div>
+            </div>
         </section>
 
         <section class="view hidden form-view" id="view-register">
@@ -185,9 +230,11 @@
                             <fieldset class="field"><legend>Apakah memiliki bisnis/usaha sendiri? *</legend><div class="choice-row"><label class="choice"><input type="radio" name="reg-business" value="Ya" required><span>Ya</span></label><label class="choice"><input type="radio" name="reg-business" value="Tidak"><span>Tidak</span></label></div></fieldset>
                             <div class="business-fields hidden" id="business-fields">
                                 <label class="field"><span>Nama bisnis/usaha *</span><input type="text" id="reg-business-name" maxlength="100" placeholder="Contoh: Kopi Diponegoro"></label>
-                                <label class="field"><span>Deskripsi singkat usaha *</span><textarea id="reg-business-description" rows="3" maxlength="350" placeholder="Jelaskan produk atau layanan utama usaha Anda."></textarea></label>
-                                <label class="field"><span>Akun Instagram bisnis *</span><span class="input-prefix"><span>instagram.com/</span><input type="text" id="reg-business-instagram" maxlength="50" placeholder="namaakun" autocomplete="off"></span><small>Masukkan nama akun saja, tanpa tanda @. Foto profil akun akan digunakan sebagai visual kartu bisnis apabila dapat diakses.</small></label>
-                                <label class="check-field"><input type="checkbox" id="reg-business-consent"><span>Saya menyetujui nama usaha, nama pemilik, deskripsi, dan akun Instagram bisnis ditampilkan pada halaman publik.</span></label>
+                                <label class="field"><span>Kategori utama bisnis *</span><select id="reg-business-category"><option value="">Pilih kategori bisnis</option></select><small>Pilih kategori yang paling menggambarkan produk atau layanan utama.</small></label>
+                                <div class="category-suggestion hidden" id="reg-business-category-suggestion"><i data-lucide="sparkles"></i><span></span><button type="button" data-category-target="reg-business-category">Gunakan saran</button></div>
+                                <label class="field"><span>Deskripsi singkat usaha *</span><textarea id="reg-business-description" rows="5" maxlength="500" placeholder="Jelaskan produk atau layanan utama, wilayah pelayanan, keunggulan usaha, dan siapa yang dapat menggunakan produk atau layanan Anda."></textarea><small>Maksimal 500 karakter. Deskripsi digunakan untuk membantu menyarankan kategori.</small></label>
+                                <label class="field"><span>Akun Instagram bisnis *</span><span class="input-prefix"><span>instagram.com/</span><input type="text" id="reg-business-instagram" maxlength="50" placeholder="namaakun" autocomplete="off"></span><small>Masukkan nama akun saja, tanpa tanda @. Tautan Instagram akan ditampilkan tanpa mengambil foto profil.</small></label>
+                                <label class="check-field"><input type="checkbox" id="reg-business-consent"><span>Saya menyetujui nama usaha, nama pemilik, kategori, deskripsi, dan akun Instagram bisnis ditampilkan pada halaman publik.</span></label>
                             </div>
                             <label class="check-field"><input type="checkbox" id="reg-consent" required><span>Saya menyetujui pemrosesan data untuk pendataan, komunikasi, dan pemberdayaan alumni IKADIS sesuai kebijakan privasi.</span></label>
                         </div>
@@ -223,7 +270,9 @@
                         <fieldset class="field"><legend>Memiliki bisnis/usaha?</legend><div class="choice-row"><label class="choice"><input type="radio" name="update-business" value="Ya"><span>Ya</span></label><label class="choice"><input type="radio" name="update-business" value="Tidak"><span>Tidak</span></label></div></fieldset>
                         <div class="business-fields hidden" id="update-business-fields">
                             <label class="field"><span>Nama bisnis/usaha *</span><input type="text" id="update-business-name" maxlength="100"></label>
-                            <label class="field"><span>Deskripsi singkat usaha *</span><textarea id="update-business-description" rows="3" maxlength="350"></textarea></label>
+                            <label class="field"><span>Kategori utama bisnis *</span><select id="update-business-category"><option value="">Pilih kategori bisnis</option></select></label>
+                            <div class="category-suggestion hidden" id="update-business-category-suggestion"><i data-lucide="sparkles"></i><span></span><button type="button" data-category-target="update-business-category">Gunakan saran</button></div>
+                            <label class="field"><span>Deskripsi singkat usaha *</span><textarea id="update-business-description" rows="5" maxlength="500" placeholder="Jelaskan produk atau layanan utama, wilayah pelayanan, dan keunggulan usaha."></textarea><small>Maksimal 500 karakter.</small></label>
                             <label class="field"><span>Akun Instagram bisnis *</span><span class="input-prefix"><span>instagram.com/</span><input type="text" id="update-business-instagram" maxlength="50"></span></label>
                             <label class="check-field"><input type="checkbox" id="update-business-consent"><span>Saya menyetujui informasi usaha ditampilkan pada halaman publik.</span></label>
                         </div>
@@ -334,6 +383,14 @@
                                 <label class="field"><span>Nama akun Instagram *</span><span class="input-prefix"><span>instagram.com/</span><input type="text" id="official-instagram" required placeholder="ikadis_official"></span><small>Tautan ini digunakan pada header dan footer situs.</small></label>
                                 <button type="submit" class="button button-primary"><i data-lucide="save"></i> Simpan Instagram</button>
                             </form>
+                            <form class="admin-card admin-form" id="official-whatsapp-settings-form">
+                                <div class="card-heading"><div><span class="eyebrow">Kontak layanan resmi</span><h2>WhatsApp IKADIS</h2></div></div>
+                                <label class="field"><span>Nama layanan *</span><input type="text" id="official-whatsapp-label" required maxlength="60" placeholder="Layanan Alumni IKADIS"><small>Nama ini tampil pada tombol dan footer.</small></label>
+                                <label class="field"><span>Nomor WhatsApp *</span><input type="tel" id="official-whatsapp-number" inputmode="tel" maxlength="20" placeholder="081234567890"><small>Boleh diawali 0 atau +62. Nomor wajib diisi saat kontak diaktifkan.</small></label>
+                                <label class="field"><span>Pesan pembuka</span><textarea id="official-whatsapp-message" rows="3" maxlength="300" placeholder="Assalamu’alaikum, saya ingin bertanya mengenai Portal Alumni IKADIS."></textarea></label>
+                                <label class="check-field"><input type="checkbox" id="official-whatsapp-active" checked><span>Tampilkan tombol kontak pada portal publik.</span></label>
+                                <button type="submit" class="button button-primary"><i data-lucide="save"></i> Simpan Kontak IKADIS</button>
+                            </form>
                             <form class="admin-card admin-form" id="whatsapp-settings-form">
                                 <div class="card-heading"><div><span class="eyebrow">Pengalihan setelah mendaftar</span><h2>Grup WhatsApp</h2></div></div>
                                 <div id="whatsapp-settings-fields" class="wa-field-grid"></div>
@@ -350,10 +407,12 @@
         <div class="container footer-grid">
             <div class="footer-brand"><img src="assets/ikadis-logo.png" alt="Logo IKADIS"><p>Bersatu dalam ukhuwah, berkarya untuk kemajuan, dan berkontribusi bagi umat, bangsa, serta almamater.</p></div>
             <div><h2>Tautan Cepat</h2><button type="button" data-scroll="kegiatan-section">Kegiatan IKADIS</button><button type="button" data-scroll="bisnis-section">Bisnis Alumni</button><button type="button" data-view="register">Isi Data Alumni</button></div>
-            <div><h2>Terhubung</h2><a id="footer-instagram-link" class="footer-social is-disabled" href="#" target="_blank" rel="noopener noreferrer"><i data-lucide="instagram"></i><span>Ikuti IKADIS di Instagram</span></a></div>
+            <div class="footer-connected"><h2>Terhubung</h2><a id="footer-instagram-link" class="footer-social is-disabled" href="#" target="_blank" rel="noopener noreferrer"><i data-lucide="instagram"></i><span>Ikuti IKADIS di Instagram</span></a><a id="footer-whatsapp-link" class="footer-social is-disabled" href="#" target="_blank" rel="noopener noreferrer"><i data-lucide="message-circle"></i><span>Hubungi Layanan IKADIS</span></a></div>
         </div>
         <div class="container footer-bottom"><span>© <span id="footer-year">2026</span> IKADIS — Ikatan Alumni Diponegoro Surakarta.</span><span>Portal Alumni Resmi YPID</span></div>
     </footer>
+
+    <a id="floating-whatsapp-link" class="floating-whatsapp is-disabled hidden" href="#" target="_blank" rel="noopener noreferrer" aria-label="Hubungi IKADIS melalui WhatsApp"><i data-lucide="message-circle"></i><span>Hubungi IKADIS</span></a>
 
     <div class="modal hidden" id="message-modal" role="dialog" aria-modal="true" aria-labelledby="message-modal-title">
         <div class="modal-backdrop" data-close-modal="message-modal"></div>

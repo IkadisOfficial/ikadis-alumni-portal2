@@ -20,6 +20,37 @@
         "Ibu Rumah Tangga", "Tidak Bekerja/Mencari Kerja", "Lainnya"
     ];
 
+    const BUSINESS_CATEGORIES = [
+        "Makanan & Minuman",
+        "Fashion, Kecantikan & Perawatan",
+        "Pendidikan & Pelatihan",
+        "Kesehatan & Kebugaran",
+        "Teknologi & Digital",
+        "Jasa Profesional",
+        "Kreatif, Media & Acara",
+        "Perdagangan & Retail",
+        "Properti, Konstruksi & Interior",
+        "Otomotif, Transportasi & Logistik",
+        "Pertanian, Peternakan & Produk Alam",
+        "Pariwisata & Akomodasi",
+        "Lainnya"
+    ];
+
+    const BUSINESS_CATEGORY_KEYWORDS = {
+        "Makanan & Minuman": ["makanan", "minuman", "kuliner", "catering", "katering", "kopi", "cafe", "kafe", "restoran", "bakery", "roti", "kue", "snack", "nasi", "dapur", "warung", "ayam", "susu", "frozen"],
+        "Fashion, Kecantikan & Perawatan": ["fashion", "busana", "hijab", "pakaian", "baju", "sepatu", "tas", "kosmetik", "kecantikan", "salon", "barbershop", "skincare", "makeup", "perawatan"],
+        "Pendidikan & Pelatihan": ["pendidikan", "sekolah", "kursus", "les", "bimbel", "pelatihan", "training", "belajar", "bahasa", "tahfidz", "seminar"],
+        "Kesehatan & Kebugaran": ["kesehatan", "klinik", "dokter", "apotek", "farmasi", "terapi", "fisioterapi", "kebugaran", "fitness", "gym", "herbal", "gizi"],
+        "Teknologi & Digital": ["teknologi", "digital", "website", "aplikasi", "software", "komputer", "it ", "internet", "hosting", "programmer", "sistem informasi", "cyber", "data"],
+        "Jasa Profesional": ["konsultan", "konsultasi", "akuntansi", "pajak", "hukum", "notaris", "arsitek", "penerjemah", "administrasi", "keuangan", "audit", "psikolog", "legal"],
+        "Kreatif, Media & Acara": ["desain", "grafis", "fotografi", "videografi", "media", "percetakan", "printing", "dekorasi", "event", "acara", "wedding", "konten", "branding", "studio"],
+        "Perdagangan & Retail": ["toko", "retail", "grosir", "distributor", "reseller", "perdagangan", "sembako", "supplier", "produk", "marketplace"],
+        "Properti, Konstruksi & Interior": ["properti", "rumah", "tanah", "konstruksi", "bangunan", "kontraktor", "interior", "furniture", "mebel", "renovasi", "material"],
+        "Otomotif, Transportasi & Logistik": ["otomotif", "mobil", "motor", "bengkel", "transportasi", "logistik", "ekspedisi", "pengiriman", "rental", "travel", "kurir"],
+        "Pertanian, Peternakan & Produk Alam": ["pertanian", "peternakan", "perikanan", "kebun", "tanaman", "pupuk", "bibit", "ternak", "ikan", "hasil bumi", "organik"],
+        "Pariwisata & Akomodasi": ["wisata", "pariwisata", "hotel", "homestay", "penginapan", "akomodasi", "tour", "umrah", "haji", "villa"]
+    };
+
     const WA_LABELS = {
         putra_rentang_1: "Putra usia 17–30 tahun",
         putra_rentang_2: "Putra usia 31–45 tahun",
@@ -36,6 +67,10 @@
         supabase: null,
         registrationStep: 1,
         publicMessages: [],
+        publicBusinesses: [],
+        homeBusinesses: [],
+        businessDirectoryLimit: 12,
+        businessIndex: 0,
         messageIndex: 0,
         messageTimer: null,
         alumni: [],
@@ -84,6 +119,18 @@
 
     function bindEvents() {
         document.addEventListener("click", event => {
+            const categorySuggestion = event.target.closest("[data-category-target]");
+            if (categorySuggestion) {
+                const target = document.getElementById(categorySuggestion.dataset.categoryTarget);
+                const category = categorySuggestion.dataset.suggestedCategory || "";
+                if (target && category) {
+                    target.value = category;
+                    target.dataset.manual = "true";
+                    categorySuggestion.closest(".category-suggestion")?.classList.add("hidden");
+                }
+                return;
+            }
+
             const viewButton = event.target.closest("[data-view]");
             if (viewButton) {
                 event.preventDefault();
@@ -106,16 +153,34 @@
 
         $("#mobile-menu-button").addEventListener("click", toggleMobileMenu);
         window.addEventListener("scroll", () => $("#site-header").classList.toggle("scrolled", window.scrollY > 12), { passive: true });
+        window.addEventListener("resize", updateBusinessCarouselStatus, { passive: true });
 
         $("#reg-next").addEventListener("click", () => moveRegistrationStep(1));
         $("#reg-prev").addEventListener("click", () => moveRegistrationStep(-1));
         $("#registration-form").addEventListener("submit", submitRegistration);
         $("#reg-job").addEventListener("change", toggleCustomJob);
         $$('input[name="reg-business"]').forEach(input => input.addEventListener("change", toggleRegistrationBusiness));
+        $("#reg-business-description").addEventListener("input", () => updateCategorySuggestion("reg"));
+        $("#reg-business-name").addEventListener("input", () => updateCategorySuggestion("reg"));
+        $("#reg-business-category").addEventListener("change", event => event.target.dataset.manual = event.target.value ? "true" : "");
 
         $("#update-request-form").addEventListener("submit", requestUpdateLink);
         $("#update-profile-form").addEventListener("submit", submitProfileUpdate);
         $$('input[name="update-business"]').forEach(input => input.addEventListener("change", toggleUpdateBusiness));
+        $("#update-business-description").addEventListener("input", () => updateCategorySuggestion("update"));
+        $("#update-business-name").addEventListener("input", () => updateCategorySuggestion("update"));
+        $("#update-business-category").addEventListener("change", event => event.target.dataset.manual = event.target.value ? "true" : "");
+
+        $("#business-prev").addEventListener("click", () => moveBusinessCarousel(-1));
+        $("#business-next").addEventListener("click", () => moveBusinessCarousel(1));
+        $("#business-carousel").addEventListener("scroll", debounce(updateBusinessCarouselStatus, 80), { passive: true });
+        $("#business-search").addEventListener("input", () => renderBusinessDirectory(true));
+        $("#business-category-filter").addEventListener("change", () => renderBusinessDirectory(true));
+        $("#business-reset-filter").addEventListener("click", resetBusinessDirectoryFilters);
+        $("#business-load-more").addEventListener("click", () => {
+            state.businessDirectoryLimit += 12;
+            renderBusinessDirectory(false);
+        });
 
         $("#open-message-modal").addEventListener("click", () => openModal("message-modal"));
         $("#share-portal-button").addEventListener("click", sharePortalToWhatsapp);
@@ -141,6 +206,7 @@
         $("#admin-message-list").addEventListener("click", handleMessageAdminAction);
 
         $("#instagram-settings-form").addEventListener("submit", saveInstagramSetting);
+        $("#official-whatsapp-settings-form").addEventListener("submit", saveOfficialWhatsappSetting);
         $("#whatsapp-settings-form").addEventListener("submit", saveWhatsappSettings);
 
         $("#confirm-action").addEventListener("click", async () => {
@@ -163,6 +229,9 @@
         fillSelect($("#update-domicile"), DOMICILE_OPTIONS, "Pilih wilayah");
         fillSelect($("#reg-job"), JOB_OPTIONS, "Pilih bidang pekerjaan");
         fillSelect($("#update-job"), JOB_OPTIONS, "Pilih bidang pekerjaan");
+        fillSelect($("#reg-business-category"), BUSINESS_CATEGORIES, "Pilih kategori bisnis");
+        fillSelect($("#update-business-category"), BUSINESS_CATEGORIES, "Pilih kategori bisnis");
+        fillSelect($("#business-category-filter"), BUSINESS_CATEGORIES, "Semua kategori");
     }
 
     function fillSelect(select, options, placeholder) {
@@ -197,8 +266,11 @@
 
         if (name === "register" && options.reset !== false) resetRegistrationForm();
         if (name === "update" && options.reset !== false) resetUpdateView();
+        if (name === "business-directory") renderBusinessDirectory(true);
         if (name === "admin-dashboard") fetchAdminDashboard();
 
+        document.body.dataset.activeView = name;
+        applyPublicSettings(state.settings);
         window.scrollTo({ top: 0, behavior: options.instant ? "auto" : "smooth" });
         window.setTimeout(renderIcons, 20);
     }
@@ -268,47 +340,120 @@
     async function loadPublicBusinesses() {
         const { data, error } = await state.supabase.rpc("get_public_businesses");
         if (error) throw error;
-        renderPublicBusinesses(data || []);
+        state.publicBusinesses = (data || []).sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+        state.homeBusinesses = state.publicBusinesses.slice(0, 15);
+        renderPublicBusinesses();
+        renderBusinessDirectory(true);
     }
 
-    function renderPublicBusinesses(businesses) {
-        const grid = $("#business-grid");
+    function renderPublicBusinesses() {
+        const carousel = $("#business-carousel");
+        const businesses = state.homeBusinesses;
         if (!businesses.length) {
-            grid.innerHTML = '<div class="empty-state empty-state-dark span-all"><i data-lucide="store"></i><p>Bisnis alumni akan segera ditampilkan.</p></div>';
+            carousel.innerHTML = '<div class="empty-state empty-state-dark span-all"><i data-lucide="store"></i><p>Bisnis alumni akan segera ditampilkan.</p></div>';
+            updateBusinessCarouselStatus();
             renderIcons();
             return;
         }
 
-        grid.innerHTML = businesses.map((business, index) => {
-            const handle = sanitizeInstagramHandle(business.instagram_bisnis);
-            const profileUrl = instagramProfileUrl(handle);
-            const initials = getInitials(business.nama_bisnis || business.nama_lengkap);
-            const avatarUrl = `https://unavatar.io/instagram/${encodeURIComponent(handle)}`;
-            return `
-                <article class="business-card">
-                    <div class="business-cover">
-                        <div class="business-fallback">${escapeHTML(initials)}</div>
-                        <img class="instagram-avatar" src="${escapeAttr(avatarUrl)}" alt="Foto profil Instagram ${escapeAttr(business.nama_bisnis)}" data-avatar-index="${index}" loading="lazy">
-                    </div>
-                    <div class="business-card-content">
-                        <h3>${escapeHTML(business.nama_bisnis || "Usaha Alumni")}</h3>
-                        <p class="business-owner">Pemilik: ${escapeHTML(business.nama_lengkap)}</p>
-                        <p class="business-description">${escapeHTML(business.deskripsi_bisnis || "Usaha milik keluarga besar alumni IKADIS.")}</p>
-                        <a class="instagram-link" href="${escapeAttr(profileUrl)}" target="_blank" rel="noopener noreferrer">
-                            <span><i data-lucide="instagram"></i>@${escapeHTML(handle)}</span><i data-lucide="arrow-up-right"></i>
-                        </a>
-                    </div>
-                </article>`;
-        }).join("");
-
-        $$(".instagram-avatar", grid).forEach(image => {
-            const hideBrokenAvatar = () => image.classList.add("hidden");
-            image.addEventListener("error", hideBrokenAvatar, { once: true });
-            image.addEventListener("load", () => {
-                if (image.naturalWidth < 30) hideBrokenAvatar();
-            }, { once: true });
-        });
+        carousel.innerHTML = businesses.map(item => renderBusinessCard(item, "home")).join("");
+        carousel.scrollLeft = 0;
+        state.businessIndex = 0;
+        window.setTimeout(updateBusinessCarouselStatus, 40);
         renderIcons();
+    }
+
+    function renderBusinessCard(business, context = "directory") {
+        const handle = sanitizeInstagramHandle(business.instagram_bisnis);
+        const category = business.kategori_bisnis || inferBusinessCategory(`${business.nama_bisnis || ""} ${business.deskripsi_bisnis || ""}`) || "Lainnya";
+        const description = business.deskripsi_bisnis || "Usaha milik keluarga besar alumni IKADIS.";
+        const instagram = handle
+            ? `<a class="instagram-link" href="${escapeAttr(instagramProfileUrl(handle))}" target="_blank" rel="noopener noreferrer"><span><i data-lucide="instagram"></i>@${escapeHTML(handle)}</span><i data-lucide="arrow-up-right"></i></a>`
+            : '<span class="business-no-instagram"><i data-lucide="store"></i> Kontak melalui akun usaha terkait</span>';
+        return `
+            <article class="business-card business-card-${escapeAttr(context)}">
+                <div class="business-card-content">
+                    <span class="business-category">${escapeHTML(category)}</span>
+                    <h3>${escapeHTML(business.nama_bisnis || "Usaha Alumni")}</h3>
+                    <p class="business-owner">Pemilik: ${escapeHTML(business.nama_lengkap || "Alumni IKADIS")}</p>
+                    <p class="business-description">${escapeHTML(description)}</p>
+                    ${instagram}
+                </div>
+            </article>`;
+    }
+
+    function moveBusinessCarousel(direction) {
+        const carousel = $("#business-carousel");
+        const card = $(".business-card", carousel);
+        if (!card) return;
+        const gap = parseFloat(getComputedStyle(carousel).gap || "0");
+        carousel.scrollBy({ left: direction * (card.getBoundingClientRect().width + gap), behavior: "smooth" });
+    }
+
+    function updateBusinessCarouselStatus() {
+        const carousel = $("#business-carousel");
+        const cards = $$(".business-card", carousel);
+        const total = cards.length;
+        const counter = $("#business-counter");
+        const progress = $("#business-progress-bar");
+        if (!total || !cards[0]) {
+            counter.textContent = total ? `1 dari ${total}` : "0 dari 0";
+            progress.style.width = total ? "100%" : "0%";
+            $("#business-prev").disabled = true;
+            $("#business-next").disabled = true;
+            return;
+        }
+        const cardWidth = cards[0].getBoundingClientRect().width;
+        const gap = parseFloat(getComputedStyle(carousel).gap || "0");
+        const step = cardWidth + gap;
+        const first = Math.max(0, Math.round(carousel.scrollLeft / Math.max(step, 1)));
+        const visible = Math.max(1, Math.round((carousel.clientWidth + gap) / Math.max(step, 1)));
+        const last = Math.min(total, first + visible);
+        state.businessIndex = first;
+        counter.textContent = `${first + 1}–${last} dari ${total}`;
+        const maxScroll = Math.max(1, carousel.scrollWidth - carousel.clientWidth);
+        const ratio = Math.min(1, Math.max(0, carousel.scrollLeft / maxScroll));
+        progress.style.width = `${Math.max(8, (ratio * 92) + 8)}%`;
+        $("#business-prev").disabled = carousel.scrollLeft <= 4;
+        $("#business-next").disabled = carousel.scrollLeft >= maxScroll - 4;
+    }
+
+    function getFilteredBusinesses() {
+        const query = normalizeSearchText($("#business-search").value);
+        const category = $("#business-category-filter").value;
+        return state.publicBusinesses.filter(item => {
+            const itemCategory = item.kategori_bisnis || inferBusinessCategory(`${item.nama_bisnis || ""} ${item.deskripsi_bisnis || ""}`) || "Lainnya";
+            const haystack = normalizeSearchText([item.nama_bisnis, item.nama_lengkap, item.deskripsi_bisnis, item.instagram_bisnis, itemCategory].filter(Boolean).join(" "));
+            return (!query || haystack.includes(query)) && (!category || itemCategory === category);
+        });
+    }
+
+    function renderBusinessDirectory(resetLimit = false) {
+        const grid = $("#business-directory-grid");
+        if (!grid) return;
+        if (resetLimit) state.businessDirectoryLimit = 12;
+        const filtered = getFilteredBusinesses();
+        const visible = filtered.slice(0, state.businessDirectoryLimit);
+        const query = $("#business-search").value.trim();
+        const category = $("#business-category-filter").value;
+        $("#business-result-count").textContent = `${formatNumber(filtered.length)} bisnis`;
+        $("#business-filter-note").textContent = query || category
+            ? `Hasil pencarian${category ? ` kategori ${category}` : ""}${query ? ` untuk “${query}”` : ""}.`
+            : "Menampilkan seluruh bisnis alumni.";
+        if (!visible.length) {
+            grid.innerHTML = '<div class="empty-state span-all"><i data-lucide="search-x"></i><p>Belum ada bisnis yang sesuai dengan pencarian atau kategori ini.</p></div>';
+        } else {
+            grid.innerHTML = visible.map(item => renderBusinessCard(item, "directory")).join("");
+        }
+        $("#business-load-more").classList.toggle("hidden", visible.length >= filtered.length);
+        renderIcons();
+    }
+
+    function resetBusinessDirectoryFilters() {
+        $("#business-search").value = "";
+        $("#business-category-filter").value = "";
+        state.businessDirectoryLimit = 12;
+        renderBusinessDirectory(true);
     }
 
     async function loadPublicMessages() {
@@ -369,16 +514,36 @@
         const { data, error } = await state.supabase.from("site_settings").select("setting_key,setting_value").eq("is_public", true);
         if (error) throw error;
         const settings = Object.fromEntries((data || []).map(row => [row.setting_key, row.setting_value]));
-        applyPublicSettings(settings);
+        state.settings = { ...state.settings, ...settings };
+        applyPublicSettings(state.settings);
     }
 
-    function applyPublicSettings(settings) {
+    function applyPublicSettings(settings = {}) {
         const handle = sanitizeInstagramHandle(settings.instagram_ikadis || "");
-        const url = handle ? instagramProfileUrl(handle) : "#";
-        [$("#header-instagram-link"), $("#mobile-instagram-link"), $("#footer-instagram-link")].forEach(link => {
-            link.href = url;
+        const instagramUrl = handle ? instagramProfileUrl(handle) : "#";
+        [$("#header-instagram-link"), $("#mobile-instagram-link"), $("#footer-instagram-link")].filter(Boolean).forEach(link => {
+            link.href = instagramUrl;
             link.classList.toggle("is-disabled", !handle);
         });
+
+        const active = String(settings.whatsapp_ikadis_active ?? "true").toLowerCase() !== "false";
+        const number = normalizeWhatsappNumber(settings.whatsapp_ikadis || "");
+        const label = String(settings.whatsapp_ikadis_label || "Layanan IKADIS").trim() || "Layanan IKADIS";
+        const message = String(settings.whatsapp_ikadis_message || "Assalamu’alaikum, saya ingin bertanya mengenai Portal Alumni IKADIS.").trim();
+        const whatsappUrl = number ? buildWhatsappUrl(number, message) : "#";
+        const hiddenForView = ["admin-dashboard", "admin-login"].includes(document.body.dataset.activeView || "home");
+
+        const footerLink = $("#footer-whatsapp-link");
+        const floatingLink = $("#floating-whatsapp-link");
+        [footerLink, floatingLink].filter(Boolean).forEach(link => {
+            link.href = whatsappUrl;
+            link.classList.toggle("is-disabled", !active || !number);
+        });
+        if (footerLink) footerLink.querySelector("span").textContent = `Hubungi ${label}`;
+        if (floatingLink) {
+            floatingLink.querySelector("span").textContent = `Hubungi ${label}`;
+            floatingLink.classList.toggle("hidden", !active || !number || hiddenForView);
+        }
     }
 
     function resetRegistrationForm() {
@@ -414,7 +579,7 @@
         const step = $(`.form-step[data-step="${stepNumber}"]`);
         clearInvalidFields(step);
         let valid = true;
-        const requiredFields = $$('input[required], select[required], textarea[required]', step);
+        const requiredFields = $$("input[required], select[required], textarea[required]", step);
 
         requiredFields.forEach(field => {
             if (field.type === "radio") {
@@ -422,7 +587,7 @@
                 if (!group) valid = false;
             } else if (field.type === "checkbox") {
                 if (!field.checked) { field.classList.add("invalid"); valid = false; }
-            } else if (!field.value.trim() || !field.checkValidity()) {
+            } else if (!String(field.value || "").trim() || !field.checkValidity()) {
                 field.classList.add("invalid");
                 valid = false;
             }
@@ -436,13 +601,13 @@
         if (stepNumber === 4) {
             const business = $('input[name="reg-business"]:checked')?.value === "Ya";
             if (business) {
-                [$("#reg-business-name"), $("#reg-business-description"), $("#reg-business-instagram")].forEach(field => {
-                    if (!field.value.trim()) { field.classList.add("invalid"); valid = false; }
+                [$("#reg-business-name"), $("#reg-business-category"), $("#reg-business-description"), $("#reg-business-instagram")].forEach(field => {
+                    if (!String(field.value || "").trim()) { field.classList.add("invalid"); valid = false; }
                 });
                 if (!isValidInstagramHandle($("#reg-business-instagram").value)) {
                     $("#reg-business-instagram").classList.add("invalid"); valid = false;
                 }
-                if (!$("#reg-business-consent").checked) { valid = false; }
+                if (!$("#reg-business-consent").checked) valid = false;
             }
         }
         return valid;
@@ -457,8 +622,9 @@
     function toggleRegistrationBusiness() {
         const show = $('input[name="reg-business"]:checked')?.value === "Ya";
         $("#business-fields").classList.toggle("hidden", !show);
-        [$("#reg-business-name"), $("#reg-business-description"), $("#reg-business-instagram")].forEach(field => field.required = show);
+        [$("#reg-business-name"), $("#reg-business-category"), $("#reg-business-description"), $("#reg-business-instagram")].forEach(field => field.required = show);
         $("#reg-business-consent").required = show;
+        if (!show) $("#reg-business-category-suggestion").classList.add("hidden");
     }
 
     async function submitRegistration(event) {
@@ -484,6 +650,7 @@
             pekerjaan: job,
             memiliki_bisnis: hasBusiness ? "Ya" : "Tidak",
             nama_bisnis: hasBusiness ? $("#reg-business-name").value.trim() : null,
+            kategori_bisnis: hasBusiness ? $("#reg-business-category").value : null,
             deskripsi_bisnis: hasBusiness ? $("#reg-business-description").value.trim() : null,
             instagram_bisnis: hasBusiness ? sanitizeInstagramHandle($("#reg-business-instagram").value) : null,
             publikasi_bisnis: hasBusiness && $("#reg-business-consent").checked,
@@ -574,6 +741,8 @@
             const businessRadio = $(`input[name="update-business"][value="${businessValue}"]`);
             if (businessRadio) businessRadio.checked = true;
             $("#update-business-name").value = profile.nama_bisnis || "";
+            $("#update-business-category").value = profile.kategori_bisnis || inferBusinessCategory(`${profile.nama_bisnis || ""} ${profile.deskripsi_bisnis || ""}`) || "";
+            $("#update-business-category").dataset.manual = profile.kategori_bisnis ? "true" : "";
             $("#update-business-description").value = profile.deskripsi_bisnis || "";
             $("#update-business-instagram").value = sanitizeInstagramHandle(profile.instagram_bisnis || "");
             $("#update-business-consent").checked = Boolean(profile.publikasi_bisnis);
@@ -596,8 +765,9 @@
     function toggleUpdateBusiness() {
         const show = $('input[name="update-business"]:checked')?.value === "Ya";
         $("#update-business-fields").classList.toggle("hidden", !show);
-        [$("#update-business-name"), $("#update-business-description"), $("#update-business-instagram")].forEach(field => field.required = show);
+        [$("#update-business-name"), $("#update-business-category"), $("#update-business-description"), $("#update-business-instagram")].forEach(field => field.required = show);
         $("#update-business-consent").required = show;
+        if (!show) $("#update-business-category-suggestion").classList.add("hidden");
     }
 
     async function submitProfileUpdate(event) {
@@ -632,6 +802,7 @@
             p_pekerjaan: $("#update-job").value,
             p_memiliki_bisnis: hasBusiness ? "Ya" : "Tidak",
             p_nama_bisnis: hasBusiness ? $("#update-business-name").value.trim() : null,
+            p_kategori_bisnis: hasBusiness ? $("#update-business-category").value : null,
             p_deskripsi_bisnis: hasBusiness ? $("#update-business-description").value.trim() : null,
             p_instagram_bisnis: hasBusiness ? sanitizeInstagramHandle($("#update-business-instagram").value) : null,
             p_publikasi_bisnis: hasBusiness && $("#update-business-consent").checked
@@ -639,13 +810,9 @@
 
         setLoading(true, "Menyimpan perubahan...");
         try {
-            const { data, error } = await state.supabase.rpc(
-                "update_alumni_profile_by_email",
-                rpcPayload
-            );
+            const { data, error } = await state.supabase.rpc("update_alumni_profile_by_email", rpcPayload);
             if (error) throw error;
             if (data !== true) throw new Error("Data alumni tidak ditemukan atau tidak berubah.");
-
             state.updateEmail = "";
             showToast("Profil alumni berhasil diperbarui.", "success");
             showView("home");
@@ -928,6 +1095,7 @@
             PEKERJAAN: row.pekerjaan,
             "MEMILIKI BISNIS": row.memiliki_bisnis,
             "NAMA BISNIS": row.nama_bisnis || "-",
+            "KATEGORI BISNIS": row.kategori_bisnis || "-",
             "DESKRIPSI BISNIS": row.deskripsi_bisnis || "-",
             "INSTAGRAM BISNIS": row.instagram_bisnis ? instagramProfileUrl(row.instagram_bisnis) : "-",
             "IZIN PUBLIKASI BISNIS": row.publikasi_bisnis ? "Ya" : "Tidak",
@@ -1188,6 +1356,10 @@
 
     function renderAdminSettings() {
         $("#official-instagram").value = sanitizeInstagramHandle(state.settings.instagram_ikadis || "");
+        $("#official-whatsapp-label").value = state.settings.whatsapp_ikadis_label || "Layanan Alumni IKADIS";
+        $("#official-whatsapp-number").value = state.settings.whatsapp_ikadis || "";
+        $("#official-whatsapp-message").value = state.settings.whatsapp_ikadis_message || "Assalamu’alaikum, saya ingin bertanya mengenai Portal Alumni IKADIS.";
+        $("#official-whatsapp-active").checked = String(state.settings.whatsapp_ikadis_active ?? "true").toLowerCase() !== "false";
         const fields = $("#whatsapp-settings-fields");
         fields.innerHTML = Object.entries(WA_LABELS).map(([key, label]) => {
             const row = state.whatsappLinks.find(item => item.kategori_grup === key);
@@ -1208,6 +1380,36 @@
             showToast("Instagram resmi IKADIS berhasil diperbarui.", "success");
         } catch (error) { showToast(friendlyError(error, "Instagram resmi belum berhasil disimpan."), "error"); }
         finally { setLoading(false); }
+    }
+
+    async function saveOfficialWhatsappSetting(event) {
+        event.preventDefault();
+        const label = $("#official-whatsapp-label").value.trim();
+        const number = normalizeWhatsappNumber($("#official-whatsapp-number").value);
+        const message = $("#official-whatsapp-message").value.trim();
+        const active = $("#official-whatsapp-active").checked;
+        if (!label) { showToast("Nama layanan WhatsApp wajib diisi.", "error"); return; }
+        if (active && (!number || number.length < 10 || number.length > 15)) { showToast("Nomor WhatsApp IKADIS belum valid.", "error"); return; }
+
+        const rows = [
+            { setting_key: "whatsapp_ikadis_label", setting_value: label, is_public: true, updated_at: new Date().toISOString() },
+            { setting_key: "whatsapp_ikadis", setting_value: number, is_public: true, updated_at: new Date().toISOString() },
+            { setting_key: "whatsapp_ikadis_message", setting_value: message, is_public: true, updated_at: new Date().toISOString() },
+            { setting_key: "whatsapp_ikadis_active", setting_value: String(active), is_public: true, updated_at: new Date().toISOString() }
+        ];
+        setLoading(true, "Menyimpan kontak resmi IKADIS...");
+        try {
+            const { error } = await state.supabase.from("site_settings").upsert(rows, { onConflict: "setting_key" });
+            if (error) throw error;
+            Object.assign(state.settings, Object.fromEntries(rows.map(row => [row.setting_key, row.setting_value])));
+            applyPublicSettings(state.settings);
+            $("#official-whatsapp-number").value = number;
+            showToast("Kontak WhatsApp IKADIS berhasil diperbarui.", "success");
+        } catch (error) {
+            showToast(friendlyError(error, "Kontak WhatsApp IKADIS belum berhasil disimpan."), "error");
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function saveWhatsappSettings(event) {
@@ -1267,11 +1469,51 @@
     function clearInvalidFields(root) { $$(".invalid", root).forEach(field => field.classList.remove("invalid")); }
     function isValidPhone(value) { return /^\+?[0-9]{8,15}$/.test(String(value).replace(/[\s()-]/g, "")); }
     function normalizePhone(value) { return String(value).replace(/[^0-9+]/g, ""); }
+    function normalizeWhatsappNumber(value) {
+        let number = String(value || "").replace(/\D/g, "");
+        if (number.startsWith("0")) number = `62${number.slice(1)}`;
+        else if (number.startsWith("8")) number = `62${number}`;
+        return number;
+    }
+    function buildWhatsappUrl(number, message = "") { return `https://wa.me/${encodeURIComponent(number)}${message ? `?text=${encodeURIComponent(message)}` : ""}`; }
+    function normalizeSearchText(value) { return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim(); }
+    function inferBusinessCategory(value) {
+        const text = ` ${normalizeSearchText(value)} `;
+        let best = "";
+        let bestScore = 0;
+        Object.entries(BUSINESS_CATEGORY_KEYWORDS).forEach(([category, keywords]) => {
+            const score = keywords.reduce((total, keyword) => total + (text.includes(normalizeSearchText(keyword)) ? 1 : 0), 0);
+            if (score > bestScore) { best = category; bestScore = score; }
+        });
+        return bestScore > 0 ? best : "";
+    }
+    function updateCategorySuggestion(prefix) {
+        const select = $(`#${prefix}-business-category`);
+        const box = $(`#${prefix}-business-category-suggestion`);
+        const name = $(`#${prefix}-business-name`)?.value || "";
+        const description = $(`#${prefix}-business-description`)?.value || "";
+        const suggestion = inferBusinessCategory(`${name} ${description}`);
+        if (!box || !select || !suggestion || select.value === suggestion) {
+            box?.classList.add("hidden");
+            return;
+        }
+        const button = $("button", box);
+        $("span", box).textContent = `Saran kategori: ${suggestion}`;
+        button.dataset.suggestedCategory = suggestion;
+        box.classList.remove("hidden");
+        renderIcons();
+    }
+    function debounce(fn, wait = 100) {
+        let timer;
+        return (...args) => {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => fn(...args), wait);
+        };
+    }
     function sanitizeInstagramHandle(value) { return String(value || "").trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/^@/, "").split(/[/?#]/)[0].trim(); }
     function isValidInstagramHandle(value) { return /^[A-Za-z0-9._]{1,30}$/.test(sanitizeInstagramHandle(value)); }
     function instagramProfileUrl(handle) { return `https://www.instagram.com/${encodeURIComponent(sanitizeInstagramHandle(handle))}/`; }
     function ageRangeIndex(age) { if (["17-20", "21-25", "26-30"].includes(age)) return 1; if (["31-35", "36-40", "41-45"].includes(age)) return 2; if (["46-50", "51-55", "56-60"].includes(age)) return 3; return 4; }
-    function getInitials(value) { return String(value || "IK").split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join("").toUpperCase(); }
     function formatNumber(value) { return new Intl.NumberFormat("id-ID").format(Number(value || 0)); }
     function formatDate(value) { if (!value) return "Tanggal belum dicantumkan"; return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta" }).format(new Date(`${value}T00:00:00+07:00`)); }
     function formatDateTime(value) { if (!value) return "-"; return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }).format(new Date(value)); }

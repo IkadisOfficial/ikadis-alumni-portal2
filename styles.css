@@ -844,3 +844,53 @@ td strong { color: var(--navy); }
     }
     .floating-whatsapp span { display: none; }
 }
+
+
+/* Pembaruan Kegiatan IKADIS: enam kartu beranda + halaman arsip/detail. */
+#kegiatan-section .activity-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+#kegiatan-section .activity-card,
+#kegiatan-section .activity-card:nth-child(1),
+#kegiatan-section .activity-card:nth-child(2),
+#kegiatan-section .activity-card:nth-child(3),
+#kegiatan-section .activity-card:nth-child(n+4) { grid-column: auto; grid-row: auto; min-height: 340px; }
+.activity-card-clickable { cursor: pointer; }
+.activity-card-clickable:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+.activity-more-wrap { display: flex; justify-content: center; margin-top: 30px; }
+
+.activity-directory-view { padding: 70px 0 100px; background: var(--soft); }
+.activity-directory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.activity-directory-card { overflow: hidden; border: 1px solid rgba(30,58,95,.08); border-radius: var(--radius); background: white; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
+.activity-directory-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.activity-directory-card:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+.activity-directory-card > img { width: 100%; height: 230px; object-fit: cover; }
+.activity-directory-content { padding: 22px; }
+.activity-directory-content time, .activity-detail-header time { display: inline-flex; align-items: center; gap: 7px; color: var(--blue); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.activity-directory-content time svg, .activity-detail-header time svg { width: 16px; }
+.activity-directory-content h2 { margin: 10px 0 8px; color: var(--navy); font-size: 19px; line-height: 1.35; }
+.activity-directory-content p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.activity-read-more { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px; color: var(--blue); font-size: 12px; font-weight: 800; }
+.activity-read-more svg { width: 16px; }
+
+.activity-detail-view { padding: 70px 0 100px; background: var(--soft); }
+.activity-detail-container { max-width: 940px; }
+.activity-detail-card { overflow: hidden; border: 1px solid rgba(30,58,95,.08); border-radius: var(--radius-lg); background: white; box-shadow: var(--shadow-md); }
+.activity-detail-header { padding: 42px 46px 30px; }
+.activity-detail-header h1 { max-width: 820px; margin: 9px 0 15px; color: var(--navy); font-size: clamp(30px, 4.5vw, 48px); line-height: 1.18; letter-spacing: -.035em; }
+.activity-detail-image { width: 100%; max-height: 590px; object-fit: cover; }
+.activity-detail-body { padding: 38px 46px 20px; color: #41566b; font-size: 16px; line-height: 1.9; }
+.activity-detail-body p { margin: 0 0 22px; }
+.activity-detail-actions { display: flex; padding: 0 46px 44px; }
+
+@media (max-width: 1080px) {
+    #kegiatan-section .activity-grid, .activity-directory-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+    #kegiatan-section .activity-grid, .activity-directory-grid { display: grid; grid-template-columns: 1fr; }
+    #kegiatan-section .activity-card, #kegiatan-section .activity-card:nth-child(1) { min-height: 330px; margin-bottom: 0; }
+    .activity-directory-card > img { height: 210px; }
+    .activity-detail-header { padding: 30px 22px 24px; }
+    .activity-detail-body { padding: 28px 22px 12px; font-size: 15px; }
+    .activity-detail-actions { padding: 0 22px 30px; }
+    .activity-detail-actions .button { width: 100%; }
+}

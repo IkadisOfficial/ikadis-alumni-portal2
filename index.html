@@ -110,6 +110,9 @@
                     <div class="activity-grid" id="activity-grid" aria-live="polite">
                         <div class="empty-state span-all"><i data-lucide="images"></i><p>Dokumentasi kegiatan akan segera ditampilkan.</p></div>
                     </div>
+                    <div class="activity-more-wrap">
+                        <button type="button" class="button button-ghost-dark" data-view="activity-directory">Lihat Semua Kegiatan <i data-lucide="arrow-right"></i></button>
+                    </div>
                 </div>
             </section>
 
@@ -168,6 +171,26 @@
                     </div>
                 </div>
             </section>
+        </section>
+
+        <section class="view hidden activity-directory-view" id="view-activity-directory">
+            <div class="container directory-container">
+                <button type="button" class="back-link" data-view="home"><i data-lucide="arrow-left"></i> Kembali ke beranda</button>
+                <header class="directory-hero">
+                    <span class="eyebrow">Dokumentasi &amp; kebersamaan</span>
+                    <h1>Seluruh Kegiatan IKADIS</h1>
+                    <p>Rekam jejak silaturahmi, kolaborasi, pengabdian, dan kontribusi keluarga besar alumni Diponegoro Surakarta.</p>
+                </header>
+                <div class="activity-directory-grid" id="activity-directory-grid" aria-live="polite"></div>
+                <div class="directory-more-wrap"><button type="button" class="button button-primary hidden" id="activity-load-more">Muat Lebih Banyak <i data-lucide="chevron-down"></i></button></div>
+            </div>
+        </section>
+
+        <section class="view hidden activity-detail-view" id="view-activity-detail">
+            <div class="container activity-detail-container">
+                <button type="button" class="back-link" data-view="activity-directory"><i data-lucide="arrow-left"></i> Kembali ke semua kegiatan</button>
+                <article class="activity-detail-card" id="activity-detail-content" aria-live="polite"></article>
+            </div>
         </section>
 
         <section class="view hidden business-directory-view" id="view-business-directory">
@@ -361,7 +384,8 @@
                                 <input type="hidden" id="activity-id">
                                 <input type="hidden" id="activity-current-path">
                                 <label class="field"><span>Judul kegiatan *</span><input type="text" id="activity-title" required maxlength="120"></label>
-                                <label class="field"><span>Caption kegiatan *</span><textarea id="activity-caption" required rows="4" maxlength="500"></textarea></label>
+                                <label class="field"><span>Ringkasan kegiatan *</span><textarea id="activity-caption" required rows="4" maxlength="500" placeholder="Ringkasan singkat yang tampil pada kartu kegiatan."></textarea><small>Maksimal 500 karakter.</small></label>
+                                <label class="field"><span>Isi / keterangan lengkap *</span><textarea id="activity-content" required rows="10" placeholder="Tuliskan dokumentasi kegiatan secara lengkap. Anda dapat menggunakan beberapa paragraf."></textarea><small>Teks ini akan tampil penuh pada halaman detail kegiatan.</small></label>
                                 <label class="field"><span>Tanggal kegiatan</span><input type="date" id="activity-date"></label>
                                 <label class="field"><span>Foto kegiatan <b id="activity-file-required">*</b></span><input type="file" id="activity-file" accept="image/jpeg,image/png,image/webp"><small>JPG, PNG, atau WebP. Maksimal 5 MB.</small></label>
                                 <label class="check-field"><input type="checkbox" id="activity-published" checked><span>Langsung tampilkan di halaman publik.</span></label>

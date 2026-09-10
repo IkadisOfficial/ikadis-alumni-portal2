@@ -1,0 +1,19 @@
+PEMBARUAN KEGIATAN IKADIS
+
+Perubahan hanya pada bagian Kegiatan IKADIS. Desain, font, logo, warna, Bisnis Alumni, kategori bisnis, Instagram, WhatsApp IKADIS, Pesan Alumni, formulir, dan fitur lain tetap dipertahankan.
+
+FITUR BARU
+- Beranda menampilkan maksimal 6 kegiatan agar susunannya rata.
+- Tombol Lihat Semua Kegiatan.
+- Halaman seluruh kegiatan, 12 kegiatan per muatan.
+- Halaman detail kegiatan dengan tulisan lengkap.
+- Tombol Bagikan ke WhatsApp pada detail kegiatan.
+- Panel Admin Kegiatan: Ringkasan + Isi/Keterangan Lengkap.
+- Kegiatan lama otomatis memakai caption lama sebagai isi lengkap awal sampai diedit admin.
+
+PEMASANGAN
+1. Jalankan supabase-schema.sql di SQL Editor Supabase.
+2. Ganti index.html, styles.css, dan app.js di repository.
+3. Folder assets tetap dipertahankan.
+4. Tunggu Vercel Ready.
+5. Uji halaman beranda, semua kegiatan, detail kegiatan, share WhatsApp, tambah/edit kegiatan.

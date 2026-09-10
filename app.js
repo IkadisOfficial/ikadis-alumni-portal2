@@ -75,6 +75,9 @@
         messageTimer: null,
         alumni: [],
         activities: [],
+        publicActivities: [],
+        activityDirectoryVisible: 12,
+        selectedActivity: null,
         adminMessages: [],
         whatsappLinks: [],
         settings: {},
@@ -187,6 +190,13 @@
         $("#public-message-form").addEventListener("submit", submitPublicMessage);
         $("#message-prev").addEventListener("click", () => changeMessage(-1));
         $("#message-next").addEventListener("click", () => changeMessage(1));
+
+        $("#activity-load-more").addEventListener("click", () => {
+            state.activityDirectoryVisible += 12;
+            renderActivityDirectory();
+        });
+        $("#activity-directory-grid").addEventListener("click", handlePublicActivityClick);
+        $("#activity-grid").addEventListener("click", handlePublicActivityClick);
 
         $("#admin-login-form").addEventListener("submit", adminLogin);
         $("#admin-logout").addEventListener("click", adminLogout);
@@ -308,13 +318,16 @@
     async function loadPublicActivities() {
         const { data, error } = await state.supabase
             .from("kegiatan")
-            .select("id,judul,caption,tanggal_kegiatan,image_url,display_order")
+            .select("id,judul,caption,isi_lengkap,tanggal_kegiatan,image_url,display_order,created_at")
             .eq("is_published", true)
             .order("display_order", { ascending: true })
             .order("tanggal_kegiatan", { ascending: false })
-            .limit(7);
+            .order("created_at", { ascending: false });
         if (error) throw error;
-        renderPublicActivities(data || []);
+        state.publicActivities = data || [];
+        renderPublicActivities(state.publicActivities.slice(0, 6));
+        if (!$("#view-activity-directory").classList.contains("hidden")) renderActivityDirectory();
+        openActivityFromUrl();
     }
 
     function renderPublicActivities(activities) {
@@ -325,7 +338,7 @@
             return;
         }
         grid.innerHTML = activities.map(item => `
-            <article class="activity-card">
+            <article class="activity-card activity-card-clickable" data-activity-id="${escapeAttr(item.id)}" tabindex="0" role="button" aria-label="Baca selengkapnya ${escapeAttr(item.judul)}">
                 <img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.judul)}" loading="lazy">
                 <div class="activity-content">
                     <time datetime="${escapeAttr(item.tanggal_kegiatan || "")}"><i data-lucide="calendar-days"></i>${formatDate(item.tanggal_kegiatan)}</time>
@@ -333,8 +346,97 @@
                     <p>${escapeHTML(item.caption)}</p>
                 </div>
             </article>`).join("");
-        $$('img', grid).forEach(image => image.addEventListener("error", () => image.closest(".activity-card")?.classList.add("image-error"), { once: true }));
+        $$("img", grid).forEach(image => image.addEventListener("error", () => image.closest(".activity-card")?.classList.add("image-error"), { once: true }));
+        $$("[data-activity-id]", grid).forEach(card => card.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openActivityDetail(card.dataset.activityId);
+            }
+        }));
         renderIcons();
+    }
+
+    async function ensurePublicActivitiesLoaded() {
+        if (!state.publicActivities.length && state.supabase) {
+            try { await loadPublicActivities(); } catch (error) { showToast(friendlyError(error, "Kegiatan belum berhasil dimuat."), "error"); }
+        } else {
+            renderActivityDirectory();
+        }
+    }
+
+    function renderActivityDirectory() {
+        const grid = $("#activity-directory-grid");
+        const items = state.publicActivities.slice(0, state.activityDirectoryVisible);
+        if (!state.publicActivities.length) {
+            grid.innerHTML = '<div class="empty-state span-all"><i data-lucide="images"></i><p>Belum ada kegiatan yang dipublikasikan.</p></div>';
+            $("#activity-load-more").classList.add("hidden");
+            renderIcons();
+            return;
+        }
+        grid.innerHTML = items.map(item => `
+            <article class="activity-directory-card" data-activity-id="${escapeAttr(item.id)}" tabindex="0" role="button" aria-label="Baca selengkapnya ${escapeAttr(item.judul)}">
+                <img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.judul)}" loading="lazy">
+                <div class="activity-directory-content">
+                    <time datetime="${escapeAttr(item.tanggal_kegiatan || "")}"><i data-lucide="calendar-days"></i>${formatDate(item.tanggal_kegiatan)}</time>
+                    <h2>${escapeHTML(item.judul)}</h2>
+                    <p>${escapeHTML(item.caption || "")}</p>
+                    <span class="activity-read-more">Baca selengkapnya <i data-lucide="arrow-right"></i></span>
+                </div>
+            </article>`).join("");
+        $("#activity-load-more").classList.toggle("hidden", items.length >= state.publicActivities.length);
+        $$("[data-activity-id]", grid).forEach(card => card.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openActivityDetail(card.dataset.activityId);
+            }
+        }));
+        renderIcons();
+    }
+
+    function handlePublicActivityClick(event) {
+        const card = event.target.closest("[data-activity-id]");
+        if (card) openActivityDetail(card.dataset.activityId);
+    }
+
+    function openActivityDetail(id, updateUrl = true) {
+        const item = state.publicActivities.find(row => String(row.id) === String(id));
+        if (!item) return;
+        state.selectedActivity = item;
+        const fullText = item.isi_lengkap || item.caption || "";
+        const paragraphs = String(fullText).split(/\n{2,}/).map(part => part.trim()).filter(Boolean);
+        $("#activity-detail-content").innerHTML = `
+            <header class="activity-detail-header">
+                <span class="eyebrow">Dokumentasi Kegiatan IKADIS</span>
+                <h1>${escapeHTML(item.judul)}</h1>
+                <time datetime="${escapeAttr(item.tanggal_kegiatan || "")}"><i data-lucide="calendar-days"></i>${formatDate(item.tanggal_kegiatan)}</time>
+            </header>
+            <img class="activity-detail-image" src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.judul)}">
+            <div class="activity-detail-body">${paragraphs.map(paragraph => `<p>${escapeHTML(paragraph).replace(/\n/g, "<br>")}</p>`).join("")}</div>
+            <div class="activity-detail-actions">
+                <button type="button" class="button button-primary" id="activity-share-whatsapp"><i data-lucide="share-2"></i> Bagikan ke WhatsApp</button>
+            </div>`;
+        $("#activity-share-whatsapp").addEventListener("click", () => shareActivityToWhatsapp(item));
+        showView("activity-detail", { reset: false });
+        if (updateUrl) {
+            const url = new URL(window.location.href);
+            url.searchParams.set("kegiatan", item.id);
+            history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+        }
+        renderIcons();
+    }
+
+    function shareActivityToWhatsapp(item) {
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.searchParams.set("kegiatan", item.id);
+        const text = `${item.judul}\n\nBaca dokumentasi lengkap kegiatan IKADIS:\n${url.toString()}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    }
+
+    function openActivityFromUrl() {
+        const id = new URLSearchParams(window.location.search).get("kegiatan");
+        if (!id) return;
+        const item = state.publicActivities.find(row => String(row.id) === String(id));
+        if (item) openActivityDetail(id, false);
     }
 
     async function loadPublicBusinesses() {
@@ -1151,6 +1253,7 @@
             const payload = {
                 judul: $("#activity-title").value.trim(),
                 caption: $("#activity-caption").value.trim(),
+                isi_lengkap: $("#activity-content").value.trim(),
                 tanggal_kegiatan: $("#activity-date").value || null,
                 image_path: newPath || oldPath,
                 image_url: imageUrl,
@@ -1207,6 +1310,7 @@
         $("#activity-current-path").value = item.image_path || "";
         $("#activity-title").value = item.judul || "";
         $("#activity-caption").value = item.caption || "";
+        $("#activity-content").value = item.isi_lengkap || item.caption || "";
         $("#activity-date").value = item.tanggal_kegiatan || "";
         $("#activity-published").checked = Boolean(item.is_published);
         $("#activity-form-title").textContent = "Edit Kegiatan";

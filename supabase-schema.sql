@@ -31,6 +31,91 @@ alter table public.alumni add column if not exists instagram_bisnis text;
 alter table public.alumni add column if not exists publikasi_bisnis boolean not null default false;
 alter table public.alumni add column if not exists consent_at timestamptz;
 alter table public.alumni add column if not exists updated_at timestamptz not null default now();
+alter table public.alumni add column if not exists kategori_bisnis text;
+
+comment on column public.alumni.kategori_bisnis is
+    'Kategori utama usaha alumni untuk pencarian Direktori Bisnis Alumni.';
+
+-- Klasifikasi gratis berbasis kata kunci. Hasilnya dipakai sebagai kategori
+-- awal/saran; alumni atau admin tetap dapat memilih kategori lain pada formulir.
+create or replace function public.infer_business_category(
+    p_name text,
+    p_description text
+)
+returns text
+language plpgsql
+immutable
+set search_path = public
+as $$
+declare
+    v_text text := lower(coalesce(p_name, '') || ' ' || coalesce(p_description, ''));
+begin
+    if v_text ~ '(makanan|minuman|kuliner|catering|katering|kopi|cafe|kafe|restoran|bakery|roti|kue|snack|nasi|dapur|warung|ayam|susu|frozen)' then
+        return 'Makanan & Minuman';
+    elsif v_text ~ '(fashion|busana|hijab|pakaian|baju|sepatu|tas|kosmetik|kecantikan|salon|barbershop|skincare|makeup|perawatan)' then
+        return 'Fashion, Kecantikan & Perawatan';
+    elsif v_text ~ '(pendidikan|sekolah|kursus|les|bimbel|pelatihan|training|belajar|bahasa|tahfidz|seminar)' then
+        return 'Pendidikan & Pelatihan';
+    elsif v_text ~ '(kesehatan|klinik|dokter|apotek|farmasi|terapi|fisioterapi|kebugaran|fitness|gym|herbal|gizi)' then
+        return 'Kesehatan & Kebugaran';
+    elsif v_text ~ '(teknologi|digital|website|aplikasi|software|komputer|internet|hosting|programmer|sistem informasi|cyber|data)' then
+        return 'Teknologi & Digital';
+    elsif v_text ~ '(konsultan|konsultasi|akuntansi|pajak|hukum|notaris|arsitek|penerjemah|administrasi|keuangan|audit|psikolog|legal)' then
+        return 'Jasa Profesional';
+    elsif v_text ~ '(desain|grafis|fotografi|videografi|media|percetakan|printing|dekorasi|event|acara|wedding|konten|branding|studio)' then
+        return 'Kreatif, Media & Acara';
+    elsif v_text ~ '(properti|rumah|tanah|konstruksi|bangunan|kontraktor|interior|furniture|mebel|renovasi|material)' then
+        return 'Properti, Konstruksi & Interior';
+    elsif v_text ~ '(otomotif|mobil|motor|bengkel|transportasi|logistik|ekspedisi|pengiriman|rental|travel|kurir)' then
+        return 'Otomotif, Transportasi & Logistik';
+    elsif v_text ~ '(pertanian|peternakan|perikanan|kebun|tanaman|pupuk|bibit|ternak|ikan|hasil bumi|organik)' then
+        return 'Pertanian, Peternakan & Produk Alam';
+    elsif v_text ~ '(wisata|pariwisata|hotel|homestay|penginapan|akomodasi|tour|umrah|haji|villa)' then
+        return 'Pariwisata & Akomodasi';
+    elsif v_text ~ '(toko|retail|grosir|distributor|reseller|perdagangan|sembako|supplier|marketplace)' then
+        return 'Perdagangan & Retail';
+    else
+        return 'Lainnya';
+    end if;
+end;
+$$;
+
+-- Kategori awal untuk data bisnis lama; tidak menghapus atau mengganti data lain.
+update public.alumni
+set kategori_bisnis = public.infer_business_category(nama_bisnis, deskripsi_bisnis)
+where memiliki_bisnis = 'Ya'
+  and (kategori_bisnis is null or btrim(kategori_bisnis) = '');
+
+update public.alumni
+set kategori_bisnis = null
+where coalesce(memiliki_bisnis, 'Tidak') <> 'Ya';
+
+create index if not exists alumni_public_business_category_idx
+    on public.alumni (kategori_bisnis)
+    where publikasi_bisnis is true and memiliki_bisnis = 'Ya';
+
+create or replace function public.set_business_category_default()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+    if coalesce(new.memiliki_bisnis, 'Tidak') = 'Ya' then
+        if nullif(btrim(new.kategori_bisnis), '') is null then
+            new.kategori_bisnis := public.infer_business_category(new.nama_bisnis, new.deskripsi_bisnis);
+        end if;
+    else
+        new.kategori_bisnis := null;
+    end if;
+    return new;
+end;
+$$;
+
+drop trigger if exists alumni_set_business_category_default on public.alumni;
+create trigger alumni_set_business_category_default
+before insert or update of memiliki_bisnis, nama_bisnis, deskripsi_bisnis, kategori_bisnis
+on public.alumni
+for each row execute function public.set_business_category_default();
 
 -- Migrasi nama bisnis lama yang sebelumnya digabung dengan deskripsi memakai "-".
 update public.alumni
@@ -69,6 +154,12 @@ create table if not exists public.kegiatan (
 
 create index if not exists kegiatan_public_order_idx on public.kegiatan (is_published, display_order, tanggal_kegiatan desc);
 
+-- Pembaruan 2026: isi lengkap untuk halaman detail kegiatan.
+alter table public.kegiatan add column if not exists isi_lengkap text;
+update public.kegiatan
+set isi_lengkap = caption
+where isi_lengkap is null or btrim(isi_lengkap) = '';
+
 -- 4. PESAN ALUMNI -------------------------------------------------------------
 create table if not exists public.alumni_messages (
     id uuid primary key default gen_random_uuid(),
@@ -94,6 +185,14 @@ create table if not exists public.site_settings (
 
 insert into public.site_settings (setting_key, setting_value, is_public)
 values ('instagram_ikadis', 'ikadis_official', true)
+on conflict (setting_key) do nothing;
+
+insert into public.site_settings (setting_key, setting_value, is_public)
+values
+    ('whatsapp_ikadis_label', 'Layanan Alumni IKADIS', true),
+    ('whatsapp_ikadis', '', true),
+    ('whatsapp_ikadis_message', 'Assalamu’alaikum, saya ingin bertanya mengenai Portal Alumni IKADIS.', true),
+    ('whatsapp_ikadis_active', 'false', true)
 on conflict (setting_key) do nothing;
 
 -- 6. TAUTAN WHATSAPP ----------------------------------------------------------
@@ -142,12 +241,16 @@ as $$
     select count(*)::bigint from public.alumni;
 $$;
 
-create or replace function public.get_public_businesses()
+drop function if exists public.get_public_businesses();
+
+create function public.get_public_businesses()
 returns table (
     nama_lengkap text,
     nama_bisnis text,
+    kategori_bisnis text,
     deskripsi_bisnis text,
-    instagram_bisnis text
+    instagram_bisnis text,
+    updated_at timestamptz
 )
 language sql
 stable
@@ -156,18 +259,175 @@ set search_path = public
 as $$
     select
         a.nama_lengkap,
-        coalesce(nullif(a.nama_bisnis, ''), 'Usaha Alumni') as nama_bisnis,
+        coalesce(nullif(btrim(a.nama_bisnis), ''), 'Usaha Alumni') as nama_bisnis,
+        coalesce(
+            nullif(btrim(a.kategori_bisnis), ''),
+            public.infer_business_category(a.nama_bisnis, a.deskripsi_bisnis)
+        ) as kategori_bisnis,
         a.deskripsi_bisnis,
         regexp_replace(
             regexp_replace(coalesce(a.instagram_bisnis, ''), '^https?://(www\.)?instagram\.com/', '', 'i'),
             '^@', ''
-        ) as instagram_bisnis
+        ) as instagram_bisnis,
+        coalesce(a.updated_at, a.created_at) as updated_at
     from public.alumni a
     where a.memiliki_bisnis = 'Ya'
       and a.publikasi_bisnis = true
-      and nullif(trim(a.instagram_bisnis), '') is not null
-    order by a.updated_at desc nulls last, a.created_at desc
-    limit 12;
+      and nullif(btrim(a.nama_bisnis), '') is not null
+    order by coalesce(a.updated_at, a.created_at) desc, a.nama_bisnis asc;
+$$;
+
+-- Pembaruan profil berdasarkan email, sesuai sistem aktif Portal IKADIS.
+-- Perhatian: fungsi ini tidak memakai magic link/verifikasi email.
+create or replace function public.get_alumni_profile_by_email(p_email text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    v_profile jsonb;
+begin
+    if nullif(btrim(p_email), '') is null then
+        return null;
+    end if;
+
+    select jsonb_build_object(
+        'nama_lengkap', a.nama_lengkap,
+        'nomor_hp', a.nomor_hp,
+        'wilayah_domisili', a.wilayah_domisili,
+        'pekerjaan', a.pekerjaan,
+        'memiliki_bisnis', a.memiliki_bisnis,
+        'nama_bisnis', a.nama_bisnis,
+        'kategori_bisnis', coalesce(
+            nullif(btrim(a.kategori_bisnis), ''),
+            case when a.memiliki_bisnis = 'Ya'
+                then public.infer_business_category(a.nama_bisnis, a.deskripsi_bisnis)
+                else null
+            end
+        ),
+        'deskripsi_bisnis', a.deskripsi_bisnis,
+        'instagram_bisnis', a.instagram_bisnis,
+        'publikasi_bisnis', coalesce(a.publikasi_bisnis, false)
+    )
+    into v_profile
+    from public.alumni a
+    where lower(btrim(a.email)) = lower(btrim(p_email))
+    limit 1;
+
+    return v_profile;
+end;
+$$;
+
+-- Hapus signature lama agar PostgREST tidak menemukan overload ambigu.
+drop function if exists public.update_alumni_profile_by_email(
+    text, text, text, text, text, text, text, text, text, boolean
+);
+drop function if exists public.update_alumni_profile_by_email(
+    text, text, text, text, text, text, text, text, text, text, boolean
+);
+
+create function public.update_alumni_profile_by_email(
+    p_email text,
+    p_nama_lengkap text,
+    p_nomor_hp text,
+    p_wilayah_domisili text,
+    p_pekerjaan text,
+    p_memiliki_bisnis text,
+    p_nama_bisnis text default null,
+    p_kategori_bisnis text default null,
+    p_deskripsi_bisnis text default null,
+    p_instagram_bisnis text default null,
+    p_publikasi_bisnis boolean default false
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    v_match_count integer;
+    v_updated_count integer;
+    v_has_business boolean;
+    v_category text;
+    v_allowed_categories constant text[] := array[
+        'Makanan & Minuman',
+        'Fashion, Kecantikan & Perawatan',
+        'Pendidikan & Pelatihan',
+        'Kesehatan & Kebugaran',
+        'Teknologi & Digital',
+        'Jasa Profesional',
+        'Kreatif, Media & Acara',
+        'Perdagangan & Retail',
+        'Properti, Konstruksi & Interior',
+        'Otomotif, Transportasi & Logistik',
+        'Pertanian, Peternakan & Produk Alam',
+        'Pariwisata & Akomodasi',
+        'Lainnya'
+    ];
+begin
+    if nullif(btrim(p_email), '') is null then
+        raise exception 'Email wajib diisi.' using errcode = '22023';
+    end if;
+    if nullif(btrim(p_nama_lengkap), '') is null then
+        raise exception 'Nama lengkap wajib diisi.' using errcode = '22023';
+    end if;
+    if nullif(btrim(p_nomor_hp), '') is null then
+        raise exception 'Nomor HP wajib diisi.' using errcode = '22023';
+    end if;
+    if nullif(btrim(p_wilayah_domisili), '') is null then
+        raise exception 'Wilayah domisili wajib diisi.' using errcode = '22023';
+    end if;
+    if nullif(btrim(p_pekerjaan), '') is null then
+        raise exception 'Pekerjaan wajib diisi.' using errcode = '22023';
+    end if;
+    if length(coalesce(p_deskripsi_bisnis, '')) > 500 then
+        raise exception 'Deskripsi bisnis maksimal 500 karakter.' using errcode = '22023';
+    end if;
+
+    select count(*) into v_match_count
+    from public.alumni
+    where lower(btrim(email)) = lower(btrim(p_email));
+
+    if v_match_count = 0 then
+        return false;
+    end if;
+    if v_match_count > 1 then
+        raise exception 'Terdapat lebih dari satu data alumni dengan email yang sama.' using errcode = '21000';
+    end if;
+
+    v_has_business := lower(coalesce(btrim(p_memiliki_bisnis), 'tidak')) = 'ya';
+
+    if v_has_business then
+        v_category := coalesce(
+            nullif(btrim(p_kategori_bisnis), ''),
+            public.infer_business_category(p_nama_bisnis, p_deskripsi_bisnis)
+        );
+        if not (v_category = any(v_allowed_categories)) then
+            raise exception 'Kategori bisnis tidak dikenali.' using errcode = '22023';
+        end if;
+    else
+        v_category := null;
+    end if;
+
+    update public.alumni
+    set
+        nama_lengkap = btrim(p_nama_lengkap),
+        nomor_hp = btrim(p_nomor_hp),
+        wilayah_domisili = btrim(p_wilayah_domisili),
+        pekerjaan = btrim(p_pekerjaan),
+        memiliki_bisnis = case when v_has_business then 'Ya' else 'Tidak' end,
+        nama_bisnis = case when v_has_business then nullif(btrim(p_nama_bisnis), '') else null end,
+        kategori_bisnis = v_category,
+        deskripsi_bisnis = case when v_has_business then nullif(btrim(p_deskripsi_bisnis), '') else null end,
+        instagram_bisnis = case when v_has_business then nullif(btrim(p_instagram_bisnis), '') else null end,
+        publikasi_bisnis = case when v_has_business then coalesce(p_publikasi_bisnis, false) else false end,
+        updated_at = now()
+    where lower(btrim(email)) = lower(btrim(p_email));
+
+    get diagnostics v_updated_count = row_count;
+    return v_updated_count = 1;
+end;
 $$;
 
 -- Maksimal lima pesan alumni berstatus tayang.
@@ -366,7 +626,7 @@ grant usage on schema public to anon, authenticated;
 revoke all on public.alumni from anon, authenticated;
 grant insert (email, nama_lengkap, jenis_kelamin, kelompok_usia, tahun_kelulusan,
     unit_terakhir, pendidikan_terakhir, nomor_hp, wilayah_domisili, pekerjaan,
-    memiliki_bisnis, nama_bisnis, deskripsi_bisnis, instagram_bisnis,
+    memiliki_bisnis, nama_bisnis, kategori_bisnis, deskripsi_bisnis, instagram_bisnis,
     publikasi_bisnis, consent_at) on public.alumni to anon, authenticated;
 grant select, update, delete on public.alumni to authenticated;
 
@@ -390,6 +650,15 @@ revoke all on function public.get_public_businesses() from public;
 grant execute on function public.is_admin() to anon, authenticated;
 grant execute on function public.get_public_alumni_count() to anon, authenticated;
 grant execute on function public.get_public_businesses() to anon, authenticated;
+
+revoke all on function public.get_alumni_profile_by_email(text) from public;
+revoke all on function public.update_alumni_profile_by_email(
+    text, text, text, text, text, text, text, text, text, text, boolean
+) from public;
+grant execute on function public.get_alumni_profile_by_email(text) to anon, authenticated;
+grant execute on function public.update_alumni_profile_by_email(
+    text, text, text, text, text, text, text, text, text, text, boolean
+) to anon, authenticated;
 
 -- 10. STORAGE FOTO KEGIATAN ---------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

@@ -277,6 +277,7 @@
         if (name === "register" && options.reset !== false) resetRegistrationForm();
         if (name === "update" && options.reset !== false) resetUpdateView();
         if (name === "business-directory") renderBusinessDirectory(true);
+        if (name === "activity-directory") ensurePublicActivitiesLoaded();
         if (name === "admin-dashboard") fetchAdminDashboard();
 
         document.body.dataset.activeView = name;

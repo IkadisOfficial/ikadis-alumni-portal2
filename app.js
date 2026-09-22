@@ -60,7 +60,8 @@
         putri_rentang_2: "Putri usia 31–45 tahun",
         putri_rentang_3: "Putri usia 46–60 tahun",
         putri_rentang_4: "Putri usia di atas 60 tahun",
-        pengusaha: "Grup pengusaha alumni"
+        pengusaha_ikhwan: "Grup Bisnis IKADIS Ikhwan",
+        pengusaha_akhwat: "Grup Bisnis IKADIS Akhwat"
     };
 
     const state = {
@@ -85,7 +86,8 @@
         adminVerified: false,
         confirmAction: null,
         editingActivity: null,
-        updateEmail: ""
+        updateEmail: "",
+        updateGender: ""
     };
 
     const $ = (selector, root = document) => root.querySelector(selector);
@@ -776,13 +778,43 @@
         }
     }
 
+    function businessWhatsappCategory(gender) {
+        if (gender === "Laki-laki") return "pengusaha_ikhwan";
+        if (gender === "Perempuan") return "pengusaha_akhwat";
+        return "";
+    }
+
+    function setBusinessSuccessLink(element, url, gender) {
+        setOptionalLink(element, url);
+        if (!element.classList.contains("hidden")) {
+            const label = gender === "Laki-laki" ? "Grup Bisnis IKADIS Ikhwan" : "Grup Bisnis IKADIS Akhwat";
+            element.innerHTML = `<i data-lucide="briefcase-business"></i> ${label}`;
+            renderIcons();
+        }
+    }
+
     async function configureSuccessLinks(age, gender, business) {
         const range = ageRangeIndex(age);
         const category = `${gender === "Laki-laki" ? "putra" : "putri"}_rentang_${range}`;
-        const { data } = await state.supabase.from("whatsapp_links").select("kategori_grup,url_link").in("kategori_grup", [category, "pengusaha"]);
+        const businessCategory = business === "Ya" ? businessWhatsappCategory(gender) : "";
+        const categories = [category, ...(businessCategory ? [businessCategory] : [])];
+        const { data } = await state.supabase.from("whatsapp_links").select("kategori_grup,url_link").in("kategori_grup", categories);
         const links = Object.fromEntries((data || []).map(row => [row.kategori_grup, row.url_link]));
         setOptionalLink($("#success-group-link"), links[category]);
-        setOptionalLink($("#success-business-link"), business === "Ya" ? links.pengusaha : "");
+        setBusinessSuccessLink($("#success-business-link"), businessCategory ? links[businessCategory] : "", gender);
+    }
+
+    async function configureUpdateBusinessSuccessLink(gender) {
+        const businessCategory = businessWhatsappCategory(gender);
+        setOptionalLink($("#success-group-link"), "");
+        if (!businessCategory) {
+            setBusinessSuccessLink($("#success-business-link"), "", gender);
+            return false;
+        }
+        const { data } = await state.supabase.from("whatsapp_links").select("kategori_grup,url_link").eq("kategori_grup", businessCategory).maybeSingle();
+        const url = data?.url_link || "";
+        setBusinessSuccessLink($("#success-business-link"), url, gender);
+        return /^https:\/\//i.test(url);
     }
 
     function setOptionalLink(element, url) {
@@ -793,6 +825,7 @@
 
     function resetUpdateView() {
         state.updateEmail = "";
+        state.updateGender = "";
         $("#update-request-form").reset();
         $("#update-request-form").classList.remove("hidden");
         $("#update-profile-form").classList.add("hidden");
@@ -832,6 +865,7 @@
             }
 
             state.updateEmail = email;
+            state.updateGender = profile.jenis_kelamin || "";
             $("#update-request-form").classList.add("hidden");
             $("#update-profile-form").classList.remove("hidden");
             $("#verified-email-label").textContent = `Profil ditemukan: ${email}`;
@@ -916,9 +950,17 @@
             const { data, error } = await state.supabase.rpc("update_alumni_profile_by_email", rpcPayload);
             if (error) throw error;
             if (data !== true) throw new Error("Data alumni tidak ditemukan atau tidak berubah.");
+            const updateGender = state.updateGender;
             state.updateEmail = "";
+            state.updateGender = "";
             showToast("Profil alumni berhasil diperbarui.", "success");
-            showView("home");
+            if (hasBusiness && updateGender) {
+                const hasBusinessGroup = await configureUpdateBusinessSuccessLink(updateGender);
+                if (hasBusinessGroup) showView("success");
+                else showView("home");
+            } else {
+                showView("home");
+            }
             loadPublicContent();
         } catch (error) {
             showToast(friendlyError(error, "Profil belum berhasil diperbarui."), "error");
